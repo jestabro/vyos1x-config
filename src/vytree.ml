@@ -4,7 +4,7 @@ type 'a	t = {
     children: 'a t list
 } [@@deriving yojson]
 
-type position = Before of string | After of string | End | Default
+type position = Before of string | After of string | Lexical | End | Default
 
 exception Empty_path
 exception Duplicate_child
@@ -27,6 +27,7 @@ let insert_immediate ?(position=Default) node name data children =
         | End -> node.children @ [new_node]
         | Before s -> Vylist.insert_before (fun x -> x.name = s) new_node node.children
         | After s -> Vylist.insert_after (fun x -> x.name = s) new_node node.children
+        | Lexical -> Vylist.insert_lexical (fun x y -> x.name <= y.name) new_node node.children
     in { node with children = children' }
 
 let delete_immediate node name =
@@ -34,7 +35,7 @@ let delete_immediate node name =
     { node with children = children' }
 
 let adopt node child =
-    { node with children = child :: node.children }
+    { node with children = Vylist.insert_lexical (fun x y -> x.name <= y.name) child node.children }
 
 let replace node child =
     let children = node.children in
@@ -68,7 +69,7 @@ let rec do_with_child fn node path =
         let new_node = do_with_child fn next_child names in
         replace node new_node
 
-let rec insert ?(position=Default) ?(children=[]) node path data =
+let rec insert ?(position=Lexical) ?(children=[]) node path data =
     match path with
     | [] -> raise Empty_path
     | [name] ->
