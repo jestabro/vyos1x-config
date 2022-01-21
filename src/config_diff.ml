@@ -5,10 +5,15 @@ type t = config_diff_data Vytree.t
 exception Incommensurable
 exception Empty_comparison
 
+let name_of n = Vytree.name_of_node n
+let data_of n = Vytree.data_of_node n
+let children_of n = Vytree.children_of_node n
+let make data name children = Vytree.make_full data name children
+
 let rec modify_node (m : change) (node : Config_tree.t) : t =
-    Vytree.make_full (m, Vytree.data_of_node node)
-                     (Vytree.name_of_node node)
-                     (List.map (modify_node m) (Vytree.children_of_node node))
+    make (m, data_of node)
+         (name_of node)
+         (List.map (modify_node m) (children_of node))
  
 let add_node (node : Config_tree.t) : t =
     modify_node Added node
@@ -20,21 +25,21 @@ let update_node values (node : Config_tree.t) : t =
     modify_node (Updated values) node
 
 let (^~) (node : Config_tree.t) (node' : Config_tree.t) =
-  (Vytree.name_of_node node) = (Vytree.name_of_node node') &&
-  (Vytree.data_of_node node).values <> (Vytree.data_of_node node').values
+  name_of node = name_of node' &&
+  (data_of node).values <> (data_of node').values
 
 let left_opt_pairs n m =
-    (Vytree.children_of_node n) |> List.map (fun x ->
+    (children_of n) |> List.map (fun x ->
         let maybe_node =
-            (Vytree.children_of_node m) |> List.find_opt (fun y ->
-                Vytree.name_of_node y = Vytree.name_of_node x) in
+            (children_of m) |> List.find_opt (fun y ->
+                name_of y = name_of x) in
         (Some x, maybe_node))
 
 let right_opt_pairs n m =
-    (Vytree.children_of_node m) |> List.map (fun y ->
+    (children_of m) |> List.map (fun y ->
         let maybe_node =
-            (Vytree.children_of_node n) |> List.find_opt (fun x ->
-                Vytree.name_of_node x = Vytree.name_of_node y) in
+            (children_of n) |> List.find_opt (fun x ->
+                name_of x = name_of y) in
         (maybe_node, Some y))
 
 let opt_zip n m =
@@ -47,13 +52,13 @@ let rec diff ((left_node_opt, right_node_opt) : Config_tree.t option * Config_tr
     | Some left_node, Some right_node when left_node = right_node ->
             keep_node left_node
     | Some left_node, Some right_node when left_node ^~ right_node ->
-            update_node (Vytree.data_of_node right_node).values left_node
+            update_node (data_of right_node).values left_node
     | Some left_node, Some right_node ->
-            Vytree.make_full (Unchanged, Vytree.data_of_node left_node)
-                             (Vytree.name_of_node left_node)
-                             (opt_zip left_node right_node |> List.map diff)
+            make (Unchanged, data_of left_node)
+                 (name_of left_node)
+                 (opt_zip left_node right_node |> List.map diff)
 (* if vytree.t is not opaque, one can instead write as follows (and above),
-   which is more legible:
+   which is (maybe?) more legible:
       { name = Vytree.name_of_node left_node;
         data = (Unchanged, Vytree.data_of_node left_node);
         children = opt_zip left_node right_node |> List.map diff } *)
