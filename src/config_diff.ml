@@ -9,12 +9,23 @@ let name_of n = Vytree.name_of_node n
 let data_of n = Vytree.data_of_node n
 let children_of n = Vytree.children_of_node n
 let make data name children = Vytree.make_full data name children
+(*
+let get_change n =
+    fst (data_of n)
 
+let get_config_node_data n =
+    snd (data_of n)
+*)
 let rec modify_node (m : change) (node : Config_tree.t) : t =
     make (m, data_of node)
          (name_of node)
          (List.map (modify_node m) (children_of node))
- 
+(*
+let rec forget (node: t) : Config_tree.t =
+    make (get_config_node_data node)
+         (name_of node)
+         (List.map forget (children_of node))
+*) 
 let add_node (node : Config_tree.t) : t =
     modify_node Added node
 let delete_node (node : Config_tree.t) : t =
@@ -70,3 +81,11 @@ let compare left right =
     else
         diff (Option.some left, Option.some right)
 
+(* let get_added_config (d : t) : Config_tree.t =
+    let rec added_config =
+        match get_change d with
+        | Unchanged | Added ->
+                make (forget data_of d)
+                     (name_of d)
+                     (List.map added_config (children_of d))
+        | _ -> empty tree *) (* add variant *)
