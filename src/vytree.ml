@@ -19,6 +19,19 @@ let name_of_node node = node.name
 let data_of_node node = node.data
 let children_of_node node = node.children
 
+let rec map f node = { node with data = f node.data;
+                       children = List.map (map f) node.children }
+(*let rec map f node = { name = node.name; data = f node.data;
+                       children = List.map (map f) node.children }*)
+let fmap f = map f
+
+let rec filter_map f node =
+    match (f node.data) with
+    | Some d -> Some { node with data = d; children =
+                       List.filter_map (filter_map f) node.children }
+    | None -> None
+let filter_fmap f = filter_map f
+
 let insert_immediate ?(position=Default) node name data children =
     let new_node = make_full data name children in
     let children' =

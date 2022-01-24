@@ -9,17 +9,19 @@ let name_of n = Vytree.name_of_node n
 let data_of n = Vytree.data_of_node n
 let children_of n = Vytree.children_of_node n
 let make data name children = Vytree.make_full data name children
-(*
-let get_change n =
-    fst (data_of n)
 
-let get_config_node_data n =
-    snd (data_of n)
+(*
+let get_change d = fst d
+let get_data d = snd d
 *)
-let rec modify_node (m : change) (node : Config_tree.t) : t =
+(*let rec modify_node (m : change) (node : Config_tree.t) : t =
     make (m, data_of node)
          (name_of node)
          (List.map (modify_node m) (children_of node))
+*)
+let modify_data (m : change) (a : Config_tree.config_node_data)
+                : config_diff_data = (m, a)
+let modify_node m = Vytree.fmap (modify_data m)
 (*
 let rec forget (node: t) : Config_tree.t =
     make (get_config_node_data node)
@@ -68,11 +70,6 @@ let rec diff ((left_node_opt, right_node_opt) : Config_tree.t option * Config_tr
             make (Unchanged, data_of left_node)
                  (name_of left_node)
                  (opt_zip left_node right_node |> List.map diff)
-(* if vytree.t is not opaque, one can instead write as follows (and above),
-   which is (maybe?) more legible:
-      { name = Vytree.name_of_node left_node;
-        data = (Unchanged, Vytree.data_of_node left_node);
-        children = opt_zip left_node right_node |> List.map diff } *)
     | None, None -> raise Empty_comparison
 
 let compare left right =
@@ -80,6 +77,21 @@ let compare left right =
         raise Incommensurable
     else
         diff (Option.some left, Option.some right)
+(*
+let filter_add (d : config_diff_data) : Config_tree.config_node_data option =
+    match (get_change d) with
+    | Unchanged | Added -> Some (get_data d)
+    | _ -> None
+let get_add_tree t = (Vytree.filter_fmap filter_add) t
+*)
+(*
+let get_add_compare (left: Config_tree.t) (right : Config_tree.t) : Config_tree.t =
+    let diff_tree = (compare left right) in
+    Option.value (get_add_tree diff_tree) default=(Config_tree.t make "root")
+*)
+(*in let get_added_list = List.filter_map fmap filter_add 
+in let rec get_added_tree t list : Config_tree.t list =*)
+
 
 (* let get_added_config (d : t) : Config_tree.t =
     let rec added_config =
@@ -88,4 +100,4 @@ let compare left right =
                 make (forget data_of d)
                      (name_of d)
                      (List.map added_config (children_of d))
-        | _ -> empty tree *) (* add variant *)
+        | _ -> empty tree  add variant *)
