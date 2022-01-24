@@ -10,10 +10,10 @@ let data_of n = Vytree.data_of_node n
 let children_of n = Vytree.children_of_node n
 let make data name children = Vytree.make_full data name children
 
-(*
+
 let get_change d = fst d
 let get_data d = snd d
-*)
+
 (*let rec modify_node (m : change) (node : Config_tree.t) : t =
     make (m, data_of node)
          (name_of node)
@@ -77,18 +77,18 @@ let compare left right =
         raise Incommensurable
     else
         diff (Option.some left, Option.some right)
-(*
+
 let filter_add (d : config_diff_data) : Config_tree.config_node_data option =
     match (get_change d) with
     | Unchanged | Added -> Some (get_data d)
     | _ -> None
 let get_add_tree t = (Vytree.filter_fmap filter_add) t
-*)
-(*
+
+
 let get_add_compare (left: Config_tree.t) (right : Config_tree.t) : Config_tree.t =
     let diff_tree = (compare left right) in
-    Option.value (get_add_tree diff_tree) default=(Config_tree.t make "root")
-*)
+    Option.get (get_add_tree diff_tree)
+
 (*in let get_added_list = List.filter_map fmap filter_add 
 in let rec get_added_tree t list : Config_tree.t list =*)
 
