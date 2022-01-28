@@ -17,7 +17,8 @@ exception Empty_comparison
 
 val make_diff_tree : Config_tree.t -> Config_tree.t -> diff_trees
 val clone : ?with_children:bool -> 'a Vytree.t -> 'a Vytree.t -> string list -> 'a Vytree.t
-val build_trees : diff_trees -> ?with_children:bool -> string list -> change -> unit
+val decorate_trees : diff_trees -> ?with_children:bool -> string list -> change -> unit
 val compare : Config_tree.t -> Config_tree.t -> diff_trees * t
+val get_trees : Config_tree.t -> Config_tree.t -> Config_tree.t * Config_tree.t * Config_tree.t
 (*val get_add_compare : Config_tree.t -> Config_tree.t -> Config_tree.t*)
 

@@ -41,7 +41,7 @@ let clone ?(with_children=true) old_root new_root path =
     let path_remaining = Vylist.complement path path_existing in
     clone_path ~with_children:with_children old_root new_root path_existing path_remaining
 
-let build_trees (trees : diff_trees) ?(with_children=true) (path : string list) (m : change) =
+let decorate_trees (trees : diff_trees) ?(with_children=true) (path : string list) (m : change) =
     match path with
     | [] -> ()
     | _ ->
@@ -133,9 +133,13 @@ let compare left right =
         raise Incommensurable
     else
         let trees = make_diff_tree left right in
-        let d = diff [] (build_trees trees) (Option.some left, Option.some right)
+        let d = diff [] (decorate_trees trees) (Option.some left, Option.some right)
 (*        let d = diff [] (debug_trees trees) (Option.some left, Option.some right) *)
         in (trees, d)
+
+let get_trees left right =
+    let trees, _ = compare left right in
+    (!(trees.add), !(trees.del), !(trees.inter))
 
 (* temporary sanity check for binding *)
 (*
