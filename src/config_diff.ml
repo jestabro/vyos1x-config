@@ -47,9 +47,43 @@ let right_opt_pairs n m =
 let opt_zip n m =
     left_opt_pairs n m @ right_opt_pairs n m |> List.sort_uniq compare
 
+(*
+let decorate_trees (path : string list) (m : change) node =
+    let add_tree = (Config_tree.make "root") in
+    let delete_tree = (Config_tree.make "root") in
+    let decorate_tree (path : string list) (m : change) node =
+        match m with
+        | Added | Updated -> clone path node add_tree
+        | Deleted -> clone path node delete_tree
+*)
+
+let rec clone_path ?(with_children=true) old_root new_root path_done path_remaining =
+    match path_remaining with
+    | [] | [_] ->
+        let path_total = path_done @ path_remaining in
+        let old_node = Vytree.get old_root path_total in
+        if with_children then
+            Vytree.insert ~children:(Vytree.children_of_node old_node) new_root path_total(Vytree.data_of_node old_node)
+        else
+            Vytree.insert new_root path_total(Vytree.data_of_node old_node)
+    | name :: names ->
+        let path_done = path_done @ [name] in
+        let old_node = Vytree.get old_root path_done in
+        let new_root = Vytree.insert new_root path_done (Vytree.data_of_node old_node) in
+        clone_path ~with_children:with_children old_root new_root path_done names
+
+let clone ?(with_children=true) old_root new_root path =
+    let path_existing = Vytree.get_existent_path new_root path in
+    let path_remaining = Vylist.complement path path_existing in
+    clone_path ~with_children:with_children old_root new_root path_existing path_remaining
+
+(*let decorate_tree*)
+
+(*let run = ref 5 in*)
 let rec diff ((left_node_opt, right_node_opt) : Config_tree.t option * Config_tree.t option) : t =
     match left_node_opt, right_node_opt with
     | Some left_node, None -> delete_node left_node
+(*    | None, Some right_node -> add_node (run := 2) right_node *)
     | None, Some right_node -> add_node right_node
     | Some left_node, Some right_node when left_node = right_node ->
             keep_node left_node
