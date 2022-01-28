@@ -2,7 +2,7 @@ type change = Unchanged | Added | Deleted | Updated of string list
 type config_diff_data = change * Config_tree.config_node_data
 type t = config_diff_data Vytree.t
 
-type diff_func = string list -> change -> unit
+type diff_func = ?with_children:bool -> string list -> change -> unit
 
 type diff_trees = {
     left: Config_tree.t;
@@ -41,25 +41,19 @@ let clone ?(with_children=true) old_root new_root path =
     let path_remaining = Vylist.complement path path_existing in
     clone_path ~with_children:with_children old_root new_root path_existing path_remaining
 
-let build_trees (trees : diff_trees) (path : string list) (m : change) =
-    match m with 
-    | Added | Updated _ -> trees.add := clone trees.right !(trees.add) path
-    | Deleted -> trees.del := clone ~with_children:false trees.left !(trees.del) path
-    | Unchanged -> trees.inter := clone trees.left !(trees.inter) path
-
+let build_trees (trees : diff_trees) ?(with_children=true) (path : string list) (m : change) =
+    match path with
+    | [] -> ()
+    | _ ->
+            match m with
+            | Added | Updated _ -> trees.add := clone trees.right !(trees.add) path
+            | Deleted -> trees.del := clone ~with_children:false trees.left !(trees.del) path
+            | Unchanged -> trees.inter := clone ~with_children:with_children trees.left !(trees.inter) path
 
 (*
-let decorate_trees (path : string list) (m : change) node =
-    let add_tree = (Config_tree.make "root") in
-    let delete_tree = (Config_tree.make "root") in
-    let decorate_tree (path : string list) (m : change) node =
-        match m with
-        | Added | Updated -> clone path node add_tree
-        | Deleted -> clone path node delete_tree
-*)
-
 let get_change d = fst d
 let get_data d = snd d
+*)
 
 let name_of n = Vytree.name_of_node n
 let data_of n = Vytree.data_of_node n
@@ -100,31 +94,51 @@ let right_opt_pairs n m =
 let opt_zip n m =
     left_opt_pairs n m @ right_opt_pairs n m |> List.sort_uniq compare
 
-(*let decorate_tree*)
+let get_opt_name left_opt right_opt =
+    match left_opt, right_opt with
+    | Some left_node, None -> name_of left_node
+    | None, Some right_node -> name_of right_node
+    | Some left_node, Some _ -> name_of left_node
+    | None, None -> raise Empty_comparison
 
-(*let run = ref 5 in*)
-let rec diff ((left_node_opt, right_node_opt) : Config_tree.t option * Config_tree.t option) : t =
+let update_path path left_opt right_opt =
+    let name = get_opt_name left_opt right_opt in
+    if name = "root" then path
+    else path @ [name]
+
+(*
+let debug_trees (trees : diff_trees) (path : string list) (m : change) =
+    List.iter print_endline path
+*)
+
+let rec diff (path : string list) (f : diff_func) ((left_node_opt, right_node_opt) : Config_tree.t option * Config_tree.t option) : t =
+    let path = update_path path left_node_opt right_node_opt in
     match left_node_opt, right_node_opt with
-    | Some left_node, None -> delete_node left_node
-(*    | None, Some right_node -> add_node (run := 2) right_node *)
-    | None, Some right_node -> add_node right_node
+    | Some left_node, None -> (f path Deleted; delete_node left_node)
+    | None, Some right_node -> (f path Added; add_node right_node)
     | Some left_node, Some right_node when left_node = right_node ->
-            keep_node left_node
+            (f path Unchanged; keep_node left_node)
     | Some left_node, Some right_node when left_node ^~ right_node ->
-            update_node (data_of right_node).values left_node
+            let values = (data_of right_node).values in
+            (f path (Updated values); update_node values left_node)
     | Some left_node, Some right_node ->
+            (f ~with_children:false path Unchanged;
             make (Unchanged, data_of left_node)
                  (name_of left_node)
-                 (opt_zip left_node right_node |> List.map diff)
+                 (opt_zip left_node right_node |> List.map (diff path f)))
     | None, None -> raise Empty_comparison
 
 let compare left right =
     if (Vytree.name_of_node left) <> (Vytree.name_of_node right) then
         raise Incommensurable
     else
-        diff (Option.some left, Option.some right)
+        let trees = make_diff_tree left right in
+        let d = diff [] (build_trees trees) (Option.some left, Option.some right)
+(*        let d = diff [] (debug_trees trees) (Option.some left, Option.some right) *)
+        in (trees, d)
 
 (* temporary sanity check for binding *)
+(*
 let filter_add (d : config_diff_data) : Config_tree.config_node_data option =
     match (get_change d) with
     | Unchanged | Added -> Some (get_data d)
@@ -134,3 +148,4 @@ let get_add_tree t = (Vytree.filter_fmap filter_add) t
 let get_add_compare (left: Config_tree.t) (right : Config_tree.t) : Config_tree.t =
     let diff_tree = (compare left right) in
     Option.get (get_add_tree diff_tree)
+*)

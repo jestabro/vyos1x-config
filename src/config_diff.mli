@@ -2,7 +2,7 @@ type change = Unchanged | Added | Deleted | Updated of string list
 type config_diff_data = change * Config_tree.config_node_data
 type t = config_diff_data Vytree.t
 
-type diff_func = string list -> change -> unit
+type diff_func = ?with_children:bool -> string list -> change -> unit
 
 type diff_trees = {
     left: Config_tree.t;
@@ -17,7 +17,7 @@ exception Empty_comparison
 
 val make_diff_tree : Config_tree.t -> Config_tree.t -> diff_trees
 val clone : ?with_children:bool -> 'a Vytree.t -> 'a Vytree.t -> string list -> 'a Vytree.t
-val build_trees : diff_trees -> string list -> change -> unit
-val compare : Config_tree.t -> Config_tree.t -> t
-val get_add_compare : Config_tree.t -> Config_tree.t -> Config_tree.t
+val build_trees : diff_trees -> ?with_children:bool -> string list -> change -> unit
+val compare : Config_tree.t -> Config_tree.t -> diff_trees * t
+(*val get_add_compare : Config_tree.t -> Config_tree.t -> Config_tree.t*)
 
