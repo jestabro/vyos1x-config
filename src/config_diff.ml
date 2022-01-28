@@ -2,8 +2,61 @@ type change = Unchanged | Added | Deleted | Updated of string list
 type config_diff_data = change * Config_tree.config_node_data
 type t = config_diff_data Vytree.t
 
+type diff_func = string list -> change -> unit
+
+type diff_trees = {
+    left: Config_tree.t;
+    right: Config_tree.t;
+    add: Config_tree.t ref;
+    del: Config_tree.t ref;
+    inter: Config_tree.t ref;
+}
+
 exception Incommensurable
 exception Empty_comparison
+
+let make_diff_tree l r = { left = l; right = r;
+                           add = ref (Config_tree.make "root");
+                           del = ref (Config_tree.make "root");
+                           inter = ref (Config_tree.make "root");
+}
+
+let rec clone_path ?(with_children=true) old_root new_root path_done path_remaining =
+    match path_remaining with
+    | [] | [_] ->
+        let path_total = path_done @ path_remaining in
+        let old_node = Vytree.get old_root path_total in
+        if with_children then
+            Vytree.insert ~children:(Vytree.children_of_node old_node) new_root path_total(Vytree.data_of_node old_node)
+        else
+            Vytree.insert new_root path_total(Vytree.data_of_node old_node)
+    | name :: names ->
+        let path_done = path_done @ [name] in
+        let old_node = Vytree.get old_root path_done in
+        let new_root = Vytree.insert new_root path_done (Vytree.data_of_node old_node) in
+        clone_path ~with_children:with_children old_root new_root path_done names
+
+let clone ?(with_children=true) old_root new_root path =
+    let path_existing = Vytree.get_existent_path new_root path in
+    let path_remaining = Vylist.complement path path_existing in
+    clone_path ~with_children:with_children old_root new_root path_existing path_remaining
+
+let build_trees (trees : diff_trees) (path : string list) (m : change) =
+    match m with 
+    | Added | Updated _ -> trees.add := clone trees.right !(trees.add) path
+    | Deleted -> trees.del := clone ~with_children:false trees.left !(trees.del) path
+    | Unchanged -> trees.inter := clone trees.left !(trees.inter) path
+
+
+(*
+let decorate_trees (path : string list) (m : change) node =
+    let add_tree = (Config_tree.make "root") in
+    let delete_tree = (Config_tree.make "root") in
+    let decorate_tree (path : string list) (m : change) node =
+        match m with
+        | Added | Updated -> clone path node add_tree
+        | Deleted -> clone path node delete_tree
+*)
 
 let get_change d = fst d
 let get_data d = snd d
@@ -46,36 +99,6 @@ let right_opt_pairs n m =
 
 let opt_zip n m =
     left_opt_pairs n m @ right_opt_pairs n m |> List.sort_uniq compare
-
-(*
-let decorate_trees (path : string list) (m : change) node =
-    let add_tree = (Config_tree.make "root") in
-    let delete_tree = (Config_tree.make "root") in
-    let decorate_tree (path : string list) (m : change) node =
-        match m with
-        | Added | Updated -> clone path node add_tree
-        | Deleted -> clone path node delete_tree
-*)
-
-let rec clone_path ?(with_children=true) old_root new_root path_done path_remaining =
-    match path_remaining with
-    | [] | [_] ->
-        let path_total = path_done @ path_remaining in
-        let old_node = Vytree.get old_root path_total in
-        if with_children then
-            Vytree.insert ~children:(Vytree.children_of_node old_node) new_root path_total(Vytree.data_of_node old_node)
-        else
-            Vytree.insert new_root path_total(Vytree.data_of_node old_node)
-    | name :: names ->
-        let path_done = path_done @ [name] in
-        let old_node = Vytree.get old_root path_done in
-        let new_root = Vytree.insert new_root path_done (Vytree.data_of_node old_node) in
-        clone_path ~with_children:with_children old_root new_root path_done names
-
-let clone ?(with_children=true) old_root new_root path =
-    let path_existing = Vytree.get_existent_path new_root path in
-    let path_remaining = Vylist.complement path path_existing in
-    clone_path ~with_children:with_children old_root new_root path_existing path_remaining
 
 (*let decorate_tree*)
 
