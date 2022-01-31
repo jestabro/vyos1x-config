@@ -121,6 +121,7 @@ let decorate_trees (trees : diff_trees) ?(with_children=true) (path : string lis
             | Unchanged -> trees.inter := clone ~with_children:with_children trees.left !(trees.inter) path
 
 let tree_at_path path node =
+    let path = "root" :: path
     try
         Vytree.get node path
     with Vytree.Nonexistent_path -> raise Empty_comparison
