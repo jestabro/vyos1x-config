@@ -50,11 +50,6 @@ let decorate_trees (trees : diff_trees) ?(with_children=true) (path : string lis
             | Deleted -> trees.del := clone ~with_children:false trees.left !(trees.del) path
             | Unchanged -> trees.inter := clone ~with_children:with_children trees.left !(trees.inter) path
 
-(*
-let get_change d = fst d
-let get_data d = snd d
-*)
-
 let name_of n = Vytree.name_of_node n
 let data_of n = Vytree.data_of_node n
 let children_of n = Vytree.children_of_node n
@@ -106,11 +101,6 @@ let update_path path left_opt right_opt =
     if name = "root" then path
     else path @ [name]
 
-(*
-let debug_trees (trees : diff_trees) (path : string list) (m : change) =
-    List.iter print_endline path
-*)
-
 let rec diff (path : string list) (f : diff_func) ((left_node_opt, right_node_opt) : Config_tree.t option * Config_tree.t option) : t =
     let path = update_path path left_node_opt right_node_opt in
     match left_node_opt, right_node_opt with
@@ -134,22 +124,9 @@ let compare left right =
     else
         let trees = make_diff_tree left right in
         let d = diff [] (decorate_trees trees) (Option.some left, Option.some right)
-(*        let d = diff [] (debug_trees trees) (Option.some left, Option.some right) *)
         in (trees, d)
 
 let get_trees left right =
     let trees, _ = compare left right in
     (!(trees.add), !(trees.del), !(trees.inter))
 
-(* temporary sanity check for binding *)
-(*
-let filter_add (d : config_diff_data) : Config_tree.config_node_data option =
-    match (get_change d) with
-    | Unchanged | Added -> Some (get_data d)
-    | _ -> None
-let get_add_tree t = (Vytree.filter_fmap filter_add) t
-
-let get_add_compare (left: Config_tree.t) (right : Config_tree.t) : Config_tree.t =
-    let diff_tree = (compare left right) in
-    Option.get (get_add_tree diff_tree)
-*)
