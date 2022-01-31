@@ -21,35 +21,6 @@ let make_diff_tree l r = { left = l; right = r;
                            inter = ref (Config_tree.make "root");
 }
 
-let rec clone_path ?(with_children=true) old_root new_root path_done path_remaining =
-    match path_remaining with
-    | [] | [_] ->
-        let path_total = path_done @ path_remaining in
-        let old_node = Vytree.get old_root path_total in
-        if with_children then
-            Vytree.insert ~children:(Vytree.children_of_node old_node) new_root path_total(Vytree.data_of_node old_node)
-        else
-            Vytree.insert new_root path_total(Vytree.data_of_node old_node)
-    | name :: names ->
-        let path_done = path_done @ [name] in
-        let old_node = Vytree.get old_root path_done in
-        let new_root = Vytree.insert new_root path_done (Vytree.data_of_node old_node) in
-        clone_path ~with_children:with_children old_root new_root path_done names
-
-let clone ?(with_children=true) old_root new_root path =
-    let path_existing = Vytree.get_existent_path new_root path in
-    let path_remaining = Vylist.complement path path_existing in
-    clone_path ~with_children:with_children old_root new_root path_existing path_remaining
-
-let decorate_trees (trees : diff_trees) ?(with_children=true) (path : string list) (m : change) =
-    match path with
-    | [] -> ()
-    | _ ->
-            match m with
-            | Added | Updated _ -> trees.add := clone trees.right !(trees.add) path
-            | Deleted -> trees.del := clone ~with_children:false trees.left !(trees.del) path
-            | Unchanged -> trees.inter := clone ~with_children:with_children trees.left !(trees.inter) path
-
 let name_of n = Vytree.name_of_node n
 let data_of n = Vytree.data_of_node n
 let children_of n = Vytree.children_of_node n
@@ -118,6 +89,35 @@ let rec diff (path : string list) (f : diff_func) ((left_node_opt, right_node_op
                  (opt_zip left_node right_node |> List.map (diff path f)))
     | None, None -> raise Empty_comparison
 
+let rec clone_path ?(with_children=true) old_root new_root path_done path_remaining =
+    match path_remaining with
+    | [] | [_] ->
+        let path_total = path_done @ path_remaining in
+        let old_node = Vytree.get old_root path_total in
+        if with_children then
+            Vytree.insert ~children:(Vytree.children_of_node old_node) new_root path_total(Vytree.data_of_node old_node)
+        else
+            Vytree.insert new_root path_total(Vytree.data_of_node old_node)
+    | name :: names ->
+        let path_done = path_done @ [name] in
+        let old_node = Vytree.get old_root path_done in
+        let new_root = Vytree.insert new_root path_done (Vytree.data_of_node old_node) in
+        clone_path ~with_children:with_children old_root new_root path_done names
+
+let clone ?(with_children=true) old_root new_root path =
+    let path_existing = Vytree.get_existent_path new_root path in
+    let path_remaining = Vylist.complement path path_existing in
+    clone_path ~with_children:with_children old_root new_root path_existing path_remaining
+
+let decorate_trees (trees : diff_trees) ?(with_children=true) (path : string list) (m : change) =
+    match path with
+    | [] -> ()
+    | _ ->
+            match m with
+            | Added | Updated _ -> trees.add := clone trees.right !(trees.add) path
+            | Deleted -> trees.del := clone ~with_children:false trees.left !(trees.del) path
+            | Unchanged -> trees.inter := clone ~with_children:with_children trees.left !(trees.inter) path
+
 let compare left right =
     if (Vytree.name_of_node left) <> (Vytree.name_of_node right) then
         raise Incommensurable
@@ -126,7 +126,7 @@ let compare left right =
         let d = diff [] (decorate_trees trees) (Option.some left, Option.some right)
         in (trees, d)
 
-let get_trees left right =
+let difference left right =
     let trees, _ = compare left right in
     (!(trees.add), !(trees.del), !(trees.inter))
 
