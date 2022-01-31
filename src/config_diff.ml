@@ -121,9 +121,9 @@ let decorate_trees (trees : diff_trees) ?(with_children=true) (path : string lis
             | Unchanged -> trees.inter := clone ~with_children:with_children trees.left !(trees.inter) path
 
 let tree_at_path path node =
-    let path = "root" :: path in
     try
-        Vytree.get node path
+        let node = Vytree.get node path in
+        Vytree.make_full Config_tree.default_data "root" [node]
     with Vytree.Nonexistent_path -> raise Empty_comparison
 
 (* call recursive diff on config_trees with decorate_trees as the diff_func *)
