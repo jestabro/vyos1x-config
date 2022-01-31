@@ -89,6 +89,7 @@ let rec diff (path : string list) (f : diff_func) ((left_node_opt, right_node_op
                  (opt_zip left_node right_node |> List.map (diff path f)))
     | None, None -> raise Empty_comparison
 
+(* copy node paths between trees *)
 let rec clone_path ?(with_children=true) old_root new_root path_done path_remaining =
     match path_remaining with
     | [] | [_] ->
@@ -109,6 +110,7 @@ let clone ?(with_children=true) old_root new_root path =
     let path_remaining = Vylist.complement path path_existing in
     clone_path ~with_children:with_children old_root new_root path_existing path_remaining
 
+(* define the diff_func *)
 let decorate_trees (trees : diff_trees) ?(with_children=true) (path : string list) (m : change) =
     match path with
     | [] -> ()
@@ -118,15 +120,22 @@ let decorate_trees (trees : diff_trees) ?(with_children=true) (path : string lis
             | Deleted -> trees.del := clone ~with_children:false trees.left !(trees.del) path
             | Unchanged -> trees.inter := clone ~with_children:with_children trees.left !(trees.inter) path
 
-let compare left right =
+let tree_at_path path node =
+    try
+        Vytree.get node path
+    with Vytree.Nonexistent_path -> raise Empty_comparison
+
+(* call recursive diff on config_trees with decorate_trees as the diff_func *)
+let compare path left right =
     if (Vytree.name_of_node left) <> (Vytree.name_of_node right) then
         raise Incommensurable
     else
+        let (left, right) = if (List.length path > 0) then
+            (tree_at_path path left, tree_at_path path right) else (left, right) in
         let trees = make_diff_tree left right in
         let d = diff [] (decorate_trees trees) (Option.some left, Option.some right)
         in (trees, d)
 
-let difference left right =
-    let trees, _ = compare left right in
+let difference path left right =
+    let trees, _ = compare path left right in
     (!(trees.add), !(trees.del), !(trees.inter))
-
