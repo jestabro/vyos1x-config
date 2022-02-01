@@ -33,7 +33,7 @@ val set_tag : t -> string list -> bool -> t
 
 val is_tag : t -> string list -> bool
 
-val render_commands : t -> string list -> string
+val render_commands : ?op:string -> t -> string list -> string
 
 val render_config : t -> string
 
