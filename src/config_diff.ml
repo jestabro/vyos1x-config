@@ -145,6 +145,29 @@ let decorate_trees (trees : diff_trees) ?(recurse=true) (path : string list) (m 
                       if not (is_empty inter_vals) then
                           trees.inter := clone ~set_values:inter_vals trees.left !(trees.inter) path
 
+let trim_trees (trees : diff_trees) ?(recurse=false) (path : string list) (m : change) =
+    match m with
+    | Added -> ()
+    | Subtracted -> trees.sub := clone ~recurse:recurse trees.left !(trees.sub) path
+    | Unchanged -> ()
+    | Updated v ->
+            (* if in this case, node at path is guaranteed to exist *)
+            let ov = Config_tree.get_values trees.left path in
+            match ov, v with
+            | [_], [_] -> trees.sub := clone trees.left !(trees.sub) path;
+            | _, _ -> let ov_set = ValueS.of_list ov in
+                      let v_set = ValueS.of_list v in
+                      let sub_vals = ValueS.elements (ValueS.diff ov_set v_set) in
+                      let add_vals = ValueS.elements (ValueS.diff v_set ov_set) in
+                      (* in practice, the above sets will be disjoint *)
+                      let inter_vals = ValueS.elements (ValueS.inter ov_set v_set) in
+                      if not (is_empty sub_vals) then
+                          if (is_empty add_vals) && (is_empty inter_vals) then
+                              (* delete whole node, not just values *)
+                              trees.sub := clone ~set_values:[] trees.left !(trees.sub) path
+                          else
+                              trees.sub := clone ~set_values:sub_vals trees.left !(trees.sub) path
+
 (* get sub trees for path-relative comparison *)
 let tree_at_path path node =
     try
@@ -174,3 +197,8 @@ let diff_tree path left right =
     let ret = graft_tree !(trees.sub) ret ["sub"] in
     let ret = graft_tree !(trees.inter) ret ["inter"] in
     ret
+
+let trim_tree left right =
+    let trees = make_diff_trees left right in
+    diff [] (trim_trees trees) [(Option.some left, Option.some right)];
+    !(trees.sub)
