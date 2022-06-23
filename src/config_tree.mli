@@ -36,7 +36,7 @@ val is_tag : t -> string list -> bool
 
 val get_subtree : ?with_node:bool -> t -> string list -> t
 
-val render_commands : ?op:command -> t -> string list -> string
+val render_commands : ?op:command -> ?quoted:bool -> t -> string list -> string
 
 val render_config : t -> string
 

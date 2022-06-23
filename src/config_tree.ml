@@ -113,11 +113,15 @@ let get_subtree ?(with_node=false) node path =
 module Renderer =
 struct
     (* Rendering configs as set commands *)
-    let render_set_path ?(op=Set) path value =
-        let v = Printf.sprintf "\'%s\'" value in
+    let render_set_path ?(op=Set) ?(quoted=true) path value =
+        let v =
+          match quoted with
+          | true -> Printf.sprintf "\'%s\'" value
+          | false -> Printf.sprintf "%s" value
+        in
         List.append path [v] |> String.concat " " |> Printf.sprintf "%s %s" (op_to_string op)
 
-    let rec render_commands ?(op=Set) path ct =
+    let rec render_commands ?(op=Set) ?(quoted=true) path ct =
         let new_path = List.append path [Vytree.name_of_node ct] in
         let new_path_str = String.concat " " new_path in
         let data = Vytree.data_of_node ct in
@@ -142,17 +146,17 @@ struct
                       String.concat " " new_path |> Printf.sprintf "%s %s" (op_to_string op)
                  | [v] ->
                       (* Single value, just one command *)
-                      render_set_path ~op:op new_path v
+                      render_set_path ~op:op ~quoted:quoted new_path v
                  | vs ->
                       (* A leaf node with multiple values *)
-                      List.map (render_set_path ~op:op new_path) vs |> String.concat "\n"
+                      List.map (render_set_path ~op:op ~quoted:quoted new_path) vs |> String.concat "\n"
                   end
               in
               if comment_cmd = "" then cmds else Printf.sprintf "%s\n%s" cmds comment_cmd
         | _ :: _ ->
             (* A node with children *)
             let children = List.map (fun n -> Vytree.get ct [n]) child_names in
-            let rendered_children = List.map (render_commands ~op:op new_path) children in
+            let rendered_children = List.map (render_commands ~op:op ~quoted:quoted new_path) children in
             let cmds = String.concat "\n" rendered_children in
             if comment_cmd = "" then cmds else Printf.sprintf "%s\n%s" cmds comment_cmd
 
@@ -258,14 +262,14 @@ module JSONRenderer = struct
         Printf.sprintf "{%s}" child_configs
 end (* JSONRenderer *)
 
-let render_commands ?(op=Set) node path =
+let render_commands ?(op=Set) ?(quoted=true) node path =
     let node =
 	match path with
         | [] -> node
         | _ -> Vytree.get node path
     in
     let children = Vytree.children_of_node node in
-    let commands = List.map (Renderer.render_commands ~op:op path) children in
+    let commands = List.map (Renderer.render_commands ~op:op ~quoted:quoted path) children in
     String.concat "\n" commands
 
 let render_config = Renderer.render_config
