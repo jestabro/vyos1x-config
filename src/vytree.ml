@@ -77,6 +77,7 @@ let rec insert ?(position=Default) ?(children=[]) node path data =
         | None -> insert_immediate ~position:position node name data children
         | (Some _) -> raise Duplicate_child)
     | name :: names ->
+        List.iter (Printf.printf "names: %s ") names;
         let next_child = find node name in
         match next_child with
         | Some next_child' ->
