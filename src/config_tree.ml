@@ -258,14 +258,19 @@ module JSONRenderer = struct
         Printf.sprintf "{%s}" child_configs
 end (* JSONRenderer *)
 
-let render_commands ?(op=Set) node path =
+let render_commands ?(op=Set) ?(append_level=true) node path =
     let node =
 	match path with
         | [] -> node
         | _ -> Vytree.get node path
     in
     let children = Vytree.children_of_node node in
-    let commands = List.map (Renderer.render_commands ~op:op path) children in
+    let commands =
+        if append_level then
+            List.map (Renderer.render_commands ~op:op path) children
+        else
+            List.map (Renderer.render_commands ~op:op []) children
+    in
     String.concat "\n" commands
 
 let render_config = Renderer.render_config

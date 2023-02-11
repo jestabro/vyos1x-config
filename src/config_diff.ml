@@ -265,19 +265,19 @@ let marked_render mark node =
         List.map (fun s -> if (String.length s) > 0 then mark ^ s else s) l in
     String.concat "\n" m
 
-let added_lines ?(cmds=false) node path =
+let added_lines rpath ?(cmds=false) node path =
     if not cmds then marked_render "+ " (tree_at_path path node)
     else
         let skel = Config_tree.make "" in
         let snode = clone node skel path in
-        (Config_tree.render_commands ~op:Set snode []) ^ "\n"
+        (Config_tree.render_commands ~op:Set ~append_level:false snode rpath) ^ "\n"
 
-let removed_lines ?(cmds=false) node path =
+let removed_lines rpath ?(cmds=false) node path =
     if not cmds then marked_render "- " (tree_at_path path node)
     else
         let skel = Config_tree.make "" in
         let snode = clone node skel path in
-        (Config_tree.render_commands ~op:Delete snode []) ^ "\n"
+        (Config_tree.render_commands ~op:Delete ~append_level:false snode rpath) ^ "\n"
 
 let order_commands (strl: string ref) =
     let l = String.split_on_char '\n' !strl in
@@ -287,32 +287,32 @@ let order_commands (strl: string ref) =
 
 let ppath = ref [""]
 
-let unified_diff ?(cmds=false) (str_diff: string ref) (trees : diff_trees) ?recurse:_ (path : string list) (m : change) =
+let unified_diff rpath ?(cmds=false) (str_diff: string ref) (trees : diff_trees) ?recurse:_ (path : string list) (m : change) =
     match m with
     | Added ->
             if not cmds then str_diff := !str_diff ^ (ppath_to_string_if_new ppath path);
-            str_diff := !str_diff ^ (added_lines ~cmds:cmds trees.right path)
+            str_diff := !str_diff ^ (added_lines rpath ~cmds:cmds trees.right path)
     | Subtracted ->
             if not cmds then str_diff := !str_diff ^ (ppath_to_string_if_new ppath path);
-            str_diff := !str_diff ^ (removed_lines ~cmds:cmds trees.left path)
+            str_diff := !str_diff ^ (removed_lines rpath ~cmds:cmds trees.left path)
     | Unchanged -> ()
     | Updated v ->
             if not cmds then str_diff := !str_diff ^ (ppath_to_string_if_new ppath path);
             let ov = Config_tree.get_values trees.left path in
             match ov, v with
             | [_], [_] ->
-                    str_diff := !str_diff ^ (removed_lines ~cmds:cmds trees.left path);
-                    str_diff := !str_diff ^ (added_lines ~cmds:cmds trees.right path)
+                    str_diff := !str_diff ^ (removed_lines rpath ~cmds:cmds trees.left path);
+                    str_diff := !str_diff ^ (added_lines rpath ~cmds:cmds trees.right path)
             | _, _ -> let ov_set = ValueS.of_list ov in
                       let v_set = ValueS.of_list v in
                       let sub_vals = ValueS.elements (ValueS.diff ov_set v_set) in
                       let add_vals = ValueS.elements (ValueS.diff v_set ov_set) in
                       if not (is_empty sub_vals) then
                           (trees.sub := clone ~set_values:(Some sub_vals) trees.left !(trees.sub) path;
-                           str_diff := !str_diff ^ (removed_lines ~cmds:cmds !(trees.sub) path));
+                           str_diff := !str_diff ^ (removed_lines rpath ~cmds:cmds !(trees.sub) path));
                       if not (is_empty add_vals) then
                           (trees.add := clone ~set_values:(Some add_vals) trees.right !(trees.add) path;
-                           str_diff := !str_diff ^ (added_lines ~cmds:cmds !(trees.add) path))
+                           str_diff := !str_diff ^ (added_lines rpath ~cmds:cmds !(trees.add) path))
 
 let add_empty_path src_node dest_node path =
     clone ~recurse:false ~set_values:(Some []) src_node dest_node path
@@ -349,6 +349,6 @@ let show_diff ?(cmds=false) path left right =
         let trees = make_diff_trees left right in
         let udiff = ref "" in
         ppath := [""];
-        diff [] (unified_diff ~cmds:cmds udiff trees) [(Option.some left, Option.some right)];
+        diff [] (unified_diff path ~cmds:cmds udiff trees) [(Option.some left, Option.some right)];
         if cmds then order_commands udiff;
         !udiff
