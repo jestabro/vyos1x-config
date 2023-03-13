@@ -1,5 +1,7 @@
 exception Syntax_error of ((int * int) option * string)
 
+external node_name_compare: string -> string -> int = "caml_node_name_compare"
+
 external length : string -> int = "%string_length"
 external unsafe_get : string -> int -> char = "%string_unsafe_get"
 
