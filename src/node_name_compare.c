@@ -40,18 +40,18 @@ int node_name_compare(const char* s1, const char* s2) {
         pos = 0;
         int pos1 = pos;
         int pos2 = pos;
+        int n1 = 0;
+        int n2 = 0;
         while ((pos1 < len1) && isdigit(*s1)) {
+            n1 = n1 * 10 + *s1 - '0';
             s1++;
             pos1++;
         }
         while ((pos2 < len2) && isdigit(*s2)) {
+            n2 = n2 * 10 + *s2 - '0';
             s2++;
             pos2++;
         }
-        const char* a1 = strndup(p1, pos1);
-        const char* a2 = strndup(p2, pos2);
-        int n1 = atoi(a1);
-        int n2 = atoi(a2);
         if (n1 < n2) return -1;
         if (n2 < n1) return 1;
         if ((pos1 == len1) || (pos2 == len2)) {
