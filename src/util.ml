@@ -31,3 +31,7 @@ let default default_value opt =
   match opt with
   | None -> default_value
   | Some value -> value
+
+let numeric_lex_compare s t =
+    if (node_name_compare s t <= 0) then true
+    else false

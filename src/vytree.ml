@@ -27,7 +27,7 @@ let insert_immediate ?(position=Default) node name data children =
         | End -> node.children @ [new_node]
         | Before s -> Vylist.insert_before (fun x -> x.name = s) new_node node.children
         | After s -> Vylist.insert_after (fun x -> x.name = s) new_node node.children
-        | Lexical -> Vylist.insert_compare (fun x y -> x.name < y.name) new_node node.children
+        | Lexical -> Vylist.insert_compare (fun x y -> Util.numeric_lex_compare x.name y.name) new_node node.children
     in { node with children = children' }
 
 let delete_immediate node name =
