@@ -1,13 +1,13 @@
 /*
  * numeric-lexicographical compare
  */
-#include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <caml/mlvalues.h>
-#include <caml/memory.h>
+#include <caml/fail.h>
 
 CAMLprim value caml_node_name_compare(value str1, value str2) {
+    const char* inconsistent = "internal indexing error";
     mlsize_t len, len1, len2;
     int pos, pos1, pos2;
     const char * s1, * s2;
@@ -16,11 +16,11 @@ CAMLprim value caml_node_name_compare(value str1, value str2) {
     int res;
 
     if (str1 == str2) return Val_int(0);
+    len1 = caml_string_length(str1);
+    len2 = caml_string_length(str2);
+    len = len1 <= len2 ? len1 : len2;
     s1 = String_val(str1);
     s2 = String_val(str2);
-    len1 = strlen(s1);
-    len2 = strlen(s2);
-    len = len1 <= len2 ? len1 : len2;
     p1 = s1;
     p2 = s2;
     pos = 0;
@@ -66,8 +66,14 @@ CAMLprim value caml_node_name_compare(value str1, value str2) {
             return Val_int(0);
 
         }
-        // if here, pos1 == pos2
+        // if here, pos1 == pos2, or something is horribly wrong
+        if (pos1 != pos2) caml_failwith(inconsistent);
         pos = pos1;
+        p1 = s1;
+        p2 = s2;
         len = len - pos;
+        len1 = len1 - pos;
+        len2 = len2 - pos;
+        pos = 0;
     } while (*s1 && *s2);
 }
