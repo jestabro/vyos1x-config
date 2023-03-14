@@ -226,6 +226,7 @@ module JSONRenderer = struct
         | [] -> Printf.sprintf "{}"
         | [v] -> Printf.sprintf "\"%s\"" (Util.escape_string v)
         | _  ->
+            let values = List.sort Util.lexical_numeric_compare values in
             let rendered = List.map (fun s -> Printf.sprintf "\"%s\"" (Util.escape_string s)) values in
             let rendered = String.concat "," rendered in
             Printf.sprintf "[%s]" rendered

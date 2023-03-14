@@ -36,7 +36,9 @@ let delete_immediate node name =
     { node with children = children' }
 
 let adopt node child =
-    { node with children = child :: node.children }
+    let children' =
+        Vylist.insert_compare (fun x y -> Util.lexical_numeric_compare x.name y.name) child node.children
+    in { node with children = children' }
 
 let replace node child =
     let children = node.children in
