@@ -13,6 +13,7 @@ bug-reports: "https://phabricator.vyos.net"
 dev-repo: "git+https://github.com/vyos/vyos1x-config/"
 build: [
   ["dune" "subst"] {pinned}
+  ["dune" "runtest"]
   ["dune" "build" "-p" name]
 ]
 depends: [
@@ -20,5 +21,6 @@ depends: [
   "menhir" {build}
   "dune" {build & >= "1.4.0"}
   "ppx_deriving_yojson"
+  "ppx_inline_test"
   "yojson"
 ]
