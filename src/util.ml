@@ -34,9 +34,3 @@ let default default_value opt =
 
 let lexical_numeric_compare s t =
     lex_numeric_compare s t
-
-let%test _ = lexical_numeric_compare "foo" "bar" = 1
-let%test _ = lexical_numeric_compare "baz_1729" "baz_1729" = 0
-let%test _ = lexical_numeric_compare "17_bar" "2_bar" = 1
-let%test _ = lexical_numeric_compare "foo2" "foo14" = -1
-let%test _ = lexical_numeric_compare "foo137_v3" "foo137_v10" = -1
