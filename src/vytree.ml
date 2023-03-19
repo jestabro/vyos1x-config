@@ -88,6 +88,14 @@ let rec insert ?(position=Default) ?(children=[]) node path data =
             let s = Printf.sprintf "Non-existent intermediary node: \'%s\'" name in
             raise (Insert_error s)
 
+let sorted_children_of_node cmp node =
+    let names = list_children node in
+    let names = List.sort cmp names in
+    List.map (find_or_fail node) names
+
+let sort_children cmp node =
+    {node with children = (sorted_children_of_node cmp node)}
+
 (** Given a node N check if it has children with duplicate names,
     and merge subsequent children's children into the first child by
     that name.
@@ -110,6 +118,7 @@ let merge_children merge_data node =
                 let children = List.append n.children n'.children in
                 let data = merge_data n.data n'.data in
                 let n = {n with children=children; data=data} in
+                let n = sort_children Util.lexical_numeric_compare n in
                 merge_into n ns'
             else merge_into n ns'
     in
@@ -178,11 +187,6 @@ let get_existent_path node path =
 let children_of_path node path =
     let node' = get node path in
     list_children node'
-
-let sorted_children_of_node cmp node =
-    let names = list_children node in
-    let names = List.sort cmp names in
-    List.map (find_or_fail node) names
 
 let copy node old_path new_path =
     if exists node new_path then raise Duplicate_child else

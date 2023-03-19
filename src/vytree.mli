@@ -47,6 +47,8 @@ val children_of_path : 'a t -> string list -> string list
 
 val sorted_children_of_node : (string -> string -> int) -> 'a t -> ('a t) list
 
+val sort_children : (string -> string -> int) -> 'a t -> 'a t
+
 val copy : 'a t -> string list -> string list -> 'a t
 
 val move : 'a t -> string list -> position -> 'a t
