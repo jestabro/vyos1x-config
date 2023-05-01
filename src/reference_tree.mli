@@ -1,4 +1,8 @@
-type node_type = Leaf | Tag | Other
+type node_type =
+    | Leaf  [@name "leaf"]
+    | Tag   [@name "tag"]
+    | Other [@name "other"]
+    [@@deriving yojson]
 
 type ref_node_data = {
     node_type: node_type;
@@ -13,13 +17,13 @@ type ref_node_data = {
     keep_order: bool;
     hidden: bool;
     secret: bool;
-}
+} [@@deriving yojson]
+
+type t = ref_node_data Vytree.t [@@deriving yojson]
 
 exception Bad_interface_definition of string
 
 exception Validation_error of string
-
-type t = ref_node_data Vytree.t
 
 val default_data : ref_node_data
 
@@ -50,3 +54,5 @@ val get_help_string : t -> string list -> string
 val get_value_help : t -> string list -> (string * string) list
 
 val get_completion_data : t -> string list -> (node_type * bool * string) list
+
+val render_json : t -> string
