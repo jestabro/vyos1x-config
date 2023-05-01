@@ -95,7 +95,7 @@ let data_from_xml d x =
 
 let rec insert_from_xml basepath reftree xml =
     match xml with
-    | Xml.Element (tag, _,  _) ->
+    | Xml.Element (_, _,  _) ->
         let props = find_xml_child "properties" xml in
         let data =
             (match props with
@@ -122,7 +122,7 @@ let rec insert_from_xml basepath reftree xml =
 let load_from_xml reftree file =
     let xml_to_reftree xml reftree =
         match xml with
-        | Xml.Element ("interfaceDefinition", attrs, children) ->
+        | Xml.Element ("interfaceDefinition", _, children) ->
             List.fold_left (insert_from_xml []) reftree children
         | _ -> raise (Bad_interface_definition "Should start with <interfaceDefinition>")
     in
@@ -154,7 +154,7 @@ let has_illegal_characters name =
      5. It's a non-leaf, non-tag node with a name that doesn't exist
         in the reference tree
  *)
-let rec validate_path validators_dir node path =
+let validate_path validators_dir node path =
     let show_path p = Printf.sprintf "[%s]" @@ Util.string_of_list (List.rev p) in
     let rec aux node path acc =
         let data = Vytree.data_of_node node in
@@ -171,7 +171,7 @@ let rec validate_path validators_dir node path =
                      else raise (Validation_error data.constraint_error_message))
                  else raise (Validation_error
                    (Printf.sprintf "Node %s cannot have a value" (show_path acc)))
-             | p :: ps -> raise (Validation_error (Printf.sprintf "Path %s is too long" (show_path acc))))
+             | _ -> raise (Validation_error (Printf.sprintf "Path %s is too long" (show_path acc))))
         | Tag ->
             (match path with
              | p :: p' :: ps ->
