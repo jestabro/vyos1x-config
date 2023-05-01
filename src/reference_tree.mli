@@ -4,12 +4,19 @@ type node_type =
     | Other [@name "other"]
     [@@deriving yojson]
 
+type completion_help_type =
+    | List of string [@name "list"]
+    | Path of string [@name "path"]
+    | Script of string [@name "script"]
+    [@@deriving yojson]
+
 type ref_node_data = {
     node_type: node_type;
     constraints: (Value_checker.value_constraint list);
+    constraint_error_message: string;
+    completion_help: completion_help_type list;
     help: string;
     value_help: (string * string) list;
-    constraint_error_message: string;
     multi: bool;
     valueless: bool;
     owner: string option;
