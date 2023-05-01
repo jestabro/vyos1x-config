@@ -16,7 +16,7 @@ let validate_value dir value_constraint value =
                 We should do something about it.
          *)
         let validator = F.concat dir v in
-        let arg = BatOption.default "" c in
+        let arg = Option.value ~default:"" c in
         let safe_arg = Printf.sprintf "'%s'" (Pcre.qreplace ~pat:"\"" ~templ:"\\\"" arg) in
         let result = Unix.system (Printf.sprintf "%s %s %s" validator safe_arg value) in
         match result with
