@@ -34,7 +34,7 @@ let default_data = {
     secret = false;
 }
 
-let default = Vytree.make default_data "root"
+let default = Vytree.make default_data ""
 
 (* Loading from XML *)
 
