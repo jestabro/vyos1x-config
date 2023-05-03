@@ -1,14 +1,13 @@
 type node_type =
-    | Leaf  [@name "leaf"]
-    | Tag   [@name "tag"]
-    | Other [@name "other"]
-    [@@deriving yojson]
+    | Leaf
+    | Tag
+    | Other
 
 type completion_help_type =
     | List of string [@name "list"]
     | Path of string [@name "path"]
     | Script of string [@name "script"]
-    [@@deriving yojson]
+    [@@deriving to_yojson]
 
 type ref_node_data = {
     node_type: node_type;
@@ -25,9 +24,9 @@ type ref_node_data = {
     keep_order: bool;
     hidden: bool;
     secret: bool;
-} [@@deriving yojson]
+} [@@deriving to_yojson]
 
-type t = ref_node_data Vytree.t [@@deriving yojson]
+type t = ref_node_data Vytree.t [@@deriving to_yojson]
 
 exception Bad_interface_definition of string
 
