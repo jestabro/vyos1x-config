@@ -8,6 +8,11 @@ let node_type_to_yojson = function
     | Tag -> `String "tag"
     | Other -> `String "other"
 
+type value_constraint =
+    | Regex of string [@name "regex"]
+    | External of string * string option [@name "exec"]
+    [@@deriving yojson]
+
 type completion_help_type =
     | List of string [@name "list"]
     | Path of string [@name "path"]
@@ -16,7 +21,7 @@ type completion_help_type =
 
 type ref_node_data = {
     node_type: node_type;
-    constraints: (Value_checker.value_constraint list);
+    constraints: value_constraint list;
     constraint_error_message: string;
     completion_help: completion_help_type list;
     help: string;
@@ -123,13 +128,13 @@ let load_constraint_from_xml d c =
     let aux d c =
         match c with
         | Xml.Element ("regex", _, [Xml.PCData s]) ->
-            let cs = (Value_checker.Regex s) :: d.constraints in
+            let cs = (Regex s) :: d.constraints in
             {d with constraints=cs}
         | Xml.Element ("validator", [("name", n); ("argument", a)], _) ->
-            let cs = (Value_checker.External (n, Some a)) :: d.constraints in
+            let cs = (External (n, Some a)) :: d.constraints in
             {d with constraints=cs}
         | Xml.Element ("validator", [("name", n)], _) ->
-            let cs = (Value_checker.External (n, None)) :: d.constraints in
+            let cs = (External (n, None)) :: d.constraints in
             {d with constraints=cs}
         | _ -> raise (Bad_interface_definition "Malformed constraint")
     in Xml.fold aux d c
@@ -199,70 +204,6 @@ let load_from_xml reftree file =
     with
     | Xml.File_not_found msg -> raise (Bad_interface_definition msg)
     | Xml.Error e -> raise (Bad_interface_definition (Xml.error e))
-
-(* Validation function *)
-
-let has_illegal_characters name =
-    (** Checks if string name has illegal characters in it.
-        All whitespace, curly braces, square brackets, and quotes
-        are disallowed due to their special significance to the curly config
-        format parser *)
-    try Some (Pcre.get_substring (Pcre.exec ~pat:"[\\s\\{\\}\\[\\]\"\'#]" name) 0)
-    with Not_found -> None
-
-(** Takes a list of string that represents a configuration path that may have
-    node value at the end, validates it, and splits it into path and value parts.
-
-   A list of strings is a valid path that can be created in the config tree unless:
-     1. It's a tag node without a child
-     2. It's a non-valueless leaf node without a value
-     3. It's a valueless node with a value
-     4. It's a non-valueless leaf node with garbage after the value
-     5. It's a non-leaf, non-tag node with a name that doesn't exist
-        in the reference tree
- *)
-let validate_path validators_dir node path =
-    let show_path p = Printf.sprintf "[%s]" @@ Util.string_of_list (List.rev p) in
-    let rec aux node path acc =
-        let data = Vytree.data_of_node node in
-        match data.node_type with
-        | Leaf ->
-            (match path with
-             | [] ->
-                 if data.valueless then (List.rev acc, None)
-                 else raise (Validation_error
-                   (Printf.sprintf "Node %s requires a value" (show_path acc) ))
-             | [p] ->
-                 if not data.valueless then
-                     (if (Value_checker.validate_any validators_dir data.constraints p) then (List.rev acc, Some p)
-                     else raise (Validation_error data.constraint_error_message))
-                 else raise (Validation_error
-                   (Printf.sprintf "Node %s cannot have a value" (show_path acc)))
-             | _ -> raise (Validation_error (Printf.sprintf "Path %s is too long" (show_path acc))))
-        | Tag ->
-            (match path with
-             | p :: p' :: ps ->
-                 (match (has_illegal_characters p) with
-                 | Some c -> raise (Validation_error (Printf.sprintf "Illegal character \"%s\" in node name \"%s\"" c p))
-                 | None ->
-                     if (Value_checker.validate_any validators_dir data.constraints p) then
-                         let child = Vytree.find node p' in
-                         (match child with
-                          | Some c -> aux c ps (p' :: p :: acc)
-                          | None -> raise (Validation_error (Printf.sprintf "Node %s has no child %s" (show_path acc) p')))
-                     else raise (Validation_error (Printf.sprintf "%s is not a valid child name for node %s" p (show_path acc))))
-             | [p] -> if (Value_checker.validate_any validators_dir data.constraints p) then (List.rev acc, None)
-                          else raise (Validation_error (Printf.sprintf "Node %s has no child %s" (show_path acc) p))
-             | _ -> raise (Validation_error (Printf.sprintf "Path %s is incomplete" (show_path acc))))
-        | Other ->
-            (match path with
-             | [] -> (List.rev acc, None)
-             | p :: ps ->
-                 let child = Vytree.find node p in
-                 (match child with
-                  | Some c -> aux c ps (p :: acc)
-                  | None -> raise (Validation_error ((Printf.sprintf "Path %s is incomplete" (show_path acc))))))
-    in aux node path []
 
 let is_multi reftree path =
     let data = Vytree.get_data reftree path in

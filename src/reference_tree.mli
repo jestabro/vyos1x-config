@@ -3,6 +3,11 @@ type node_type =
     | Tag
     | Other
 
+type value_constraint =
+    | Regex of string [@name "regex"]
+    | External of string * string option [@name "exec"]
+    [@@deriving yojson]
+
 type completion_help_type =
     | List of string [@name "list"]
     | Path of string [@name "path"]
@@ -11,7 +16,7 @@ type completion_help_type =
 
 type ref_node_data = {
     node_type: node_type;
-    constraints: (Value_checker.value_constraint list);
+    constraints: value_constraint list;
     constraint_error_message: string;
     completion_help: completion_help_type list;
     help: string;
@@ -37,8 +42,6 @@ val default_data : ref_node_data
 val default : t
 
 val load_from_xml : t -> string -> t
-
-val validate_path : string -> t -> string list -> string list * string option
 
 val is_multi : t -> string list -> bool
 
