@@ -1,7 +1,50 @@
 type change = Unchanged | Added | Subtracted | Updated of string list
 
-type diff_func = ?recurse:bool -> string list -> change -> unit
+exception Incommensurable
+exception Empty_comparison
+exception Nonexistent_child
 
+(* temp comment: begin transition to immutable structure *)
+module Diff_tree = struct
+    type t = { left: Config_tree.t;
+               right: Config_tree.t;
+               add: Config_tree.t;
+               sub: Config_tree.t;
+               del: Config_tree.t;
+               inter: Config_tree.t;
+             }
+end
+
+module Diff_string = struct
+    type t = { ppath: string list;
+               udiff: string;
+             }
+end
+
+module Diff_cstore = struct
+    type t = { handle: int; }
+end
+
+type _ result =
+    | Diff_tree : Diff_tree.t -> Diff_tree.t result
+    | Diff_string : Diff_string.t -> Diff_string.t result
+    | Diff_cstore : Diff_cstore.t -> Diff_cstore.t result
+
+let eval_result : type a. a result -> a = function
+    | Diff_tree x -> x
+    | Diff_string x -> x
+    | Diff_cstore x -> x
+
+type 'a diff_func_immut = ?recurse:bool -> string list -> 'a result -> change -> 'a result
+
+let make_diff_trees_immut l r = Diff_tree { left = l; right = r;
+                                  add = (Config_tree.make "");
+                                  sub = (Config_tree.make "");
+                                  del = (Config_tree.make "");
+                                  inter = (Config_tree.make "");
+}
+
+(* original mutable structure still in use *)
 type diff_trees = {
     left: Config_tree.t;
     right: Config_tree.t;
@@ -11,9 +54,7 @@ type diff_trees = {
     inter: Config_tree.t ref;
 }
 
-exception Incommensurable
-exception Empty_comparison
-exception Nonexistent_child
+type diff_func = ?recurse:bool -> string list -> change -> unit
 
 let make_diff_trees l r = { left = l; right = r;
                            add = ref (Config_tree.make "");
@@ -114,6 +155,26 @@ let rec diff (path : string list) (f : diff_func) (l : (Config_tree.t option * C
         | None, None -> raise Empty_comparison)
         ; diff path f ls
 
+let rec diff_immut (path : string list) (res: 'a result) (f : 'a diff_func_immut) (l : (Config_tree.t option * Config_tree.t option) list) =
+    match l with
+    | [] -> res
+    | (left_node_opt, right_node_opt) :: ls ->
+        let res =
+        (let path = update_path path left_node_opt right_node_opt in
+            match left_node_opt, right_node_opt with
+            | Some _, None -> f path res Subtracted
+            | None, Some _ -> f path res Added
+            | Some left_node, Some right_node when left_node = right_node ->
+                    f path res Unchanged
+            | Some left_node, Some right_node when left_node ^~ right_node ->
+                    let values = (data_of right_node).values in
+                    f path res (Updated values)
+            | Some left_node, Some right_node ->
+                    let ret = f ~recurse:false path res Unchanged
+                    in diff_immut path ret f (opt_zip left_node right_node)
+            | None, None -> raise Empty_comparison)
+        in diff_immut path res f ls
+
 (* copy node paths between trees *)
 let rec clone_path ?(recurse=true) ?(set_values=None) old_root new_root path_done path_remaining =
     match path_remaining with
@@ -177,6 +238,59 @@ let decorate_trees (trees : diff_trees) ?(recurse=true) (path : string list) (m 
                       if not (is_empty inter_vals) then
                           trees.inter := clone ~set_values:(Some inter_vals) trees.left !(trees.inter) path
 
+(* define the diff_func_immut *)
+let decorate_trees_immut ?(recurse=true) (path : string list) (Diff_tree res) (m : change) =
+    match m with
+    | Added -> Diff_tree {res with add = clone res.right res.add path }
+    | Subtracted ->
+        Diff_tree {res with sub = clone res.left res.sub path;
+         del = clone ~recurse:false ~set_values:(Some []) res.left res.del path }
+    | Unchanged ->
+        Diff_tree {res with inter = clone ~recurse:recurse res.left res.inter path }
+    | Updated v ->
+            (* if in this case, node at path is guaranteed to exist *)
+            let ov = Config_tree.get_values res.left path in
+            match ov, v with
+            | [_], [_] -> Diff_tree {res with sub = clone res.left res.sub path;
+                           del = clone res.left res.del path;
+                           add = clone res.right res.add path }
+            | _, _ -> let ov_set = ValueS.of_list ov in
+                      let v_set = ValueS.of_list v in
+                      let sub_vals = ValueS.elements (ValueS.diff ov_set v_set) in
+                      let add_vals = ValueS.elements (ValueS.diff v_set ov_set) in
+                      let inter_vals = ValueS.elements (ValueS.inter ov_set v_set) in
+                      let sub_tree =
+                          if not (is_empty sub_vals) then
+                              clone ~set_values:(Some sub_vals) res.left res.sub path
+                          else
+                              res.sub
+                      in
+                      let del_tree =
+                          if not (is_empty sub_vals) then
+                              if (is_empty add_vals) && (is_empty inter_vals) then
+                                  (* delete whole node, not just values *)
+                                  clone ~set_values:(Some []) res.left res.del path
+                              else
+                                  clone ~set_values:(Some sub_vals) res.left res.del path
+                          else
+                              res.del
+                      in
+                      let add_tree =
+                          if not (is_empty add_vals) then
+                            clone ~set_values:(Some add_vals) res.right res.add path
+                          else
+                              res.add
+                      in
+                      let inter_tree =
+                          if not (is_empty inter_vals) then
+                              clone ~set_values:(Some inter_vals) res.left res.inter path
+                          else
+                              res.inter
+                      in Diff_tree { res with add = add_tree;
+                           sub = sub_tree;
+                           del = del_tree;
+                           inter = inter_tree; }
+
 (* get sub trees for path-relative comparison *)
 let tree_at_path path node =
     try
@@ -202,6 +316,27 @@ let diff_tree path left right =
     let sub_node = make Config_tree.default_data "sub" (children_of !(trees.sub)) in
     let del_node = make Config_tree.default_data "del" (children_of !(trees.del)) in
     let int_node = make Config_tree.default_data "inter" (children_of !(trees.inter)) in
+    let ret = make Config_tree.default_data "" [add_node; sub_node; del_node; int_node] in
+    ret
+
+(* call recursive diff on config_trees with decorate_trees as the diff_func *)
+let compare_immut path left right =
+    if (name_of left) <> (name_of right) then
+        raise Incommensurable
+    else
+        let (left, right) = if not (path = []) then
+            (tree_at_path path left, tree_at_path path right) else (left, right) in
+        let trees = make_diff_trees_immut left right in
+        let d = diff_immut [] trees (decorate_trees_immut) [(Option.some left, Option.some right)]
+        in eval_result d
+
+(* wrapper to return diff trees *)
+let diff_tree_immut path left right =
+    let trees = compare_immut path left right in
+    let add_node = make Config_tree.default_data "add" (children_of (trees.add)) in
+    let sub_node = make Config_tree.default_data "sub" (children_of (trees.sub)) in
+    let del_node = make Config_tree.default_data "del" (children_of (trees.del)) in
+    let int_node = make Config_tree.default_data "inter" (children_of (trees.inter)) in
     let ret = make Config_tree.default_data "" [add_node; sub_node; del_node; int_node] in
     ret
 
