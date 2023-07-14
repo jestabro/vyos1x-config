@@ -16,7 +16,11 @@ module Diff_tree = struct
 end
 
 module Diff_string = struct
-    type t = { ppath: string list;
+    type t = { left: Config_tree.t;
+               right: Config_tree.t;
+               add: Config_tree.t;
+               sub: Config_tree.t;
+               ppath: string list;
                udiff: string;
              }
 end
@@ -43,6 +47,14 @@ let make_diff_trees_immut l r = Diff_tree { left = l; right = r;
                                   del = (Config_tree.make "");
                                   inter = (Config_tree.make "");
 }
+
+let make_diff_string l r = Diff_string {
+                               left = l; right = r;
+                               add = (Config_tree.make "");
+                               sub = (Config_tree.make "");
+                               ppath = [];
+                               udiff = "";
+                           }
 
 (* original mutable structure still in use *)
 type diff_trees = {
@@ -105,7 +117,7 @@ let right_opt_pairs n m =
  *)
 let opt_cmp o0 o1 =
     match o0, o1 with
-    | Some v0, Some v1 -> compare v0 v1
+    | Some v0, Some v1 -> compare (name_of v0) (name_of v1)
     | None, None -> 0
     | None, Some _ -> 1
     | Some _, None -> -1
@@ -347,6 +359,9 @@ let ppath_to_string_if_new (c: string list ref) (path: string list) =
     if (!c <> p) then
         (c := p; Printf.sprintf "[%s]\n" (String.concat " " !c)) else ""
 
+let path_to_string (path: string list) =
+    Printf.sprintf "[%s]\n" (String.concat " " path)
+
 let marked_render mark node =
     let lines = Config_tree.render_config node in
     let l = String.split_on_char '\n' lines in
@@ -373,6 +388,12 @@ let order_commands (strl: string ref) =
     let del = List.filter (fun s -> (s <> "") && (s.[0] = 'd')) l in
     let set = List.filter (fun s -> (s <> "") && (s.[0] = 's')) l in
     strl := (String.concat "\n" del) ^ "\n" ^ (String.concat "\n" set) ^ "\n"
+
+let order_commands_immut (strl: string) =
+    let l = String.split_on_char '\n' strl in
+    let del = List.filter (fun s -> (s <> "") && (s.[0] = 'd')) l in
+    let set = List.filter (fun s -> (s <> "") && (s.[0] = 's')) l in
+    (String.concat "\n" del) ^ "\n" ^ (String.concat "\n" set) ^ "\n"
 
 let ppath = ref [""]
 
@@ -402,6 +423,60 @@ let unified_diff ?(cmds=false) (str_diff: string ref) (trees : diff_trees) ?recu
                       if not (is_empty add_vals) then
                           (trees.add := clone ~set_values:(Some add_vals) trees.right !(trees.add) path;
                            str_diff := !str_diff ^ (added_lines ~cmds:cmds !(trees.add) path))
+
+let unified_diff_immut ?(cmds=false) ?recurse:_ (path : string list) (Diff_string res) (m : change) =
+    let ppath_l = list_but_last path
+    in
+    let ppath_s =
+        if (ppath_l <> res.ppath) then path_to_string ppath_l
+        else ""
+    in
+    let str_diff =
+        if not cmds then res.udiff ^ ppath_s
+        else res.udiff
+    in
+    match m with
+    | Added ->
+            let str_diff =
+                str_diff ^ (added_lines ~cmds:cmds res.right path)
+            in
+            Diff_string { res with ppath = ppath_l; udiff = str_diff; }
+    | Subtracted ->
+            let str_diff =
+                str_diff ^ (removed_lines ~cmds:cmds res.left path)
+            in
+            Diff_string { res with ppath = ppath_l; udiff = str_diff; }
+    | Unchanged -> Diff_string (res)
+    | Updated v ->
+            let ov = Config_tree.get_values res.left path in
+            match ov, v with
+            | [_], [_] ->
+                    let str_diff =
+                        str_diff ^ (removed_lines ~cmds:cmds res.left path)
+                    in
+                    let str_diff =
+                        str_diff ^ (added_lines ~cmds:cmds res.right path)
+                    in
+                    Diff_string { res with ppath = ppath_l; udiff = str_diff; }
+            | _, _ -> let ov_set = ValueS.of_list ov in
+                      let v_set = ValueS.of_list v in
+                      let sub_vals = ValueS.elements (ValueS.diff ov_set v_set) in
+                      let add_vals = ValueS.elements (ValueS.diff v_set ov_set) in
+                      let str_diff =
+                          if not (is_empty sub_vals) then
+                              let sub_tree =
+                                  clone ~set_values:(Some sub_vals) res.left res.sub path
+                              in str_diff ^ (removed_lines ~cmds:cmds sub_tree path)
+                          else str_diff
+                      in
+                      let str_diff =
+                          if not (is_empty add_vals) then
+                              let add_tree =
+                                  clone ~set_values:(Some add_vals) res.right res.add path
+                              in str_diff ^ (added_lines ~cmds:cmds add_tree path)
+                          else str_diff
+                      in
+                      Diff_string { res with ppath = ppath_l; udiff = str_diff; }
 
 let add_empty_path src_node dest_node path =
     clone ~recurse:false ~set_values:(Some []) src_node dest_node path
@@ -441,6 +516,25 @@ let show_diff ?(cmds=false) path left right =
         diff [] (unified_diff ~cmds:cmds udiff trees) [(Option.some left, Option.some right)];
         if cmds then order_commands udiff;
         !udiff
+
+let show_diff_immut ?(cmds=false) path left right =
+    if (name_of left) <> (name_of right) then
+        raise Incommensurable
+    else
+        let (left, right) =
+            if (path <> []) then
+                compare_at_path_maybe_empty left right path
+            else (left, right) in
+        let dstr = make_diff_string left right in
+        let dstr =
+            diff_immut [] (unified_diff_immut ~cmds:cmds) dstr (Option.some left, Option.some right)
+        in
+        let dstr = eval_result dstr in
+        let strs =
+            if cmds then order_commands_immut dstr.udiff
+            else dstr.udiff
+        in
+        strs
 
 let union_of_values (n : Config_tree.t) (m : Config_tree.t) =
     let set_n = ValueS.of_list (data_of n).values in
