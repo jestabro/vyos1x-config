@@ -542,7 +542,7 @@ let show_diff_immut ?(cmds=false) path left right =
             else (left, right) in
         let dstr = make_diff_string left right in
         let dstr =
-            diff_immut [] (unified_diff_immut ~cmds:cmds) dstr (Option.some left, Option.some right)
+            diff_immut [] dstr (unified_diff_immut ~cmds:cmds) [(Option.some left, Option.some right)]
         in
         let dstr = eval_result dstr in
         let strs =
