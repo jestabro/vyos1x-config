@@ -155,25 +155,20 @@ let rec diff (path : string list) (f : diff_func) (l : (Config_tree.t option * C
         | None, None -> raise Empty_comparison)
         ; diff path f ls
 
-let rec diff_immut (path : string list) (res: 'a result) (f : 'a diff_func_immut) (l : (Config_tree.t option * Config_tree.t option) list) =
-    match l with
-    | [] -> res
-    | (left_node_opt, right_node_opt) :: ls ->
-        let res =
-        (let path = update_path path left_node_opt right_node_opt in
-            match left_node_opt, right_node_opt with
-            | Some _, None -> f path res Subtracted
-            | None, Some _ -> f path res Added
-            | Some left_node, Some right_node when left_node = right_node ->
-                    f path res Unchanged
-            | Some left_node, Some right_node when left_node ^~ right_node ->
-                    let values = (data_of right_node).values in
-                    f path res (Updated values)
-            | Some left_node, Some right_node ->
-                    let ret = f ~recurse:false path res Unchanged
-                    in diff_immut path ret f (opt_zip left_node right_node)
-            | None, None -> raise Empty_comparison)
-        in diff_immut path res f ls
+let rec diff_immut (path : string list) (f : 'a diff_func_immut) (res: 'a result) ((left_node_opt, right_node_opt) : Config_tree.t option * Config_tree.t option) =
+    let path = update_path path left_node_opt right_node_opt in
+    match left_node_opt, right_node_opt with
+    | None, None -> raise Empty_comparison
+    | Some _, None -> f path res Subtracted
+    | None, Some _ -> f path res Added
+    | Some left_node, Some right_node when left_node = right_node ->
+        f ~recurse:true path res Unchanged
+    | Some left_node, Some right_node when left_node ^~ right_node ->
+        let values = (data_of right_node).values in
+        f path res (Updated values)
+    | Some left_node, Some right_node ->
+        let ret = f ~recurse:false path res Unchanged in
+        List.fold_left (diff_immut path f) ret (opt_zip left_node right_node)
 
 (* copy node paths between trees *)
 let rec clone_path ?(recurse=true) ?(set_values=None) old_root new_root path_done path_remaining =
@@ -327,7 +322,7 @@ let compare_immut path left right =
         let (left, right) = if not (path = []) then
             (tree_at_path path left, tree_at_path path right) else (left, right) in
         let trees = make_diff_trees_immut left right in
-        let d = diff_immut [] trees (decorate_trees_immut) [(Option.some left, Option.some right)]
+        let d = diff_immut [] decorate_trees_immut trees (Option.some left, Option.some right)
         in eval_result d
 
 (* wrapper to return diff trees *)
