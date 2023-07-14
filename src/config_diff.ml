@@ -485,8 +485,7 @@ let unified_diff_immut ?(cmds=false) ?recurse:_ (path : string list) (Diff_strin
                       let str_diff =
                           str_diff ^ (added_lines ~cmds:cmds add_tree path)
                       in
-                      Diff_string { res with ppath = ppath_l; udiff = str_diff;
-                                             sub = sub_tree; add = add_tree; }
+                      Diff_string { res with ppath = ppath_l; udiff = str_diff; }
 
 let add_empty_path src_node dest_node path =
     clone ~recurse:false ~set_values:(Some []) src_node dest_node path
