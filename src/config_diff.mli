@@ -22,7 +22,11 @@ module Diff_tree : sig
 end
 
 module Diff_string : sig
-    type t = { ppath: string list;
+    type t = { left: Config_tree.t;
+               right : Config_tree.t;
+               add: Config_tree.t;
+               sub: Config_tree.t;
+               ppath: string list;
                udiff: string;
              }
 end
@@ -49,4 +53,5 @@ val compare : string list -> Config_tree.t -> Config_tree.t -> diff_trees
 val diff_tree : string list -> Config_tree.t -> Config_tree.t -> Config_tree.t
 val diff_tree_immut : string list -> Config_tree.t -> Config_tree.t -> Config_tree.t
 val show_diff : ?cmds:bool -> string list -> Config_tree.t -> Config_tree.t -> string
+val show_diff_immut : ?cmds:bool -> string list -> Config_tree.t -> Config_tree.t -> string
 val tree_union : Config_tree.t -> Config_tree.t -> Config_tree.t
