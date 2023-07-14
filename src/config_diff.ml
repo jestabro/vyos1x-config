@@ -52,7 +52,7 @@ let make_diff_string l r = Diff_string {
                                left = l; right = r;
                                add = (Config_tree.make "");
                                sub = (Config_tree.make "");
-                               ppath = [""];
+                               ppath = [];
                                udiff = "";
                            }
 
@@ -427,15 +427,15 @@ let unified_diff ?(cmds=false) (str_diff: string ref) (trees : diff_trees) ?recu
                            str_diff := !str_diff ^ (added_lines ~cmds:cmds !(trees.add) path))
 
 let unified_diff_immut ?(cmds=false) ?recurse:_ (path : string list) (Diff_string res) (m : change) =
-    let ppath = ppath_string_if_new res.ppath path in
+    let ppath_s = ppath_string_if_new res.ppath path in
     let str_diff =
         if not cmds then
-            res.udiff ^ ppath
+            res.udiff ^ ppath_s
         else
             res.udiff
     in
-    let ppath =
-        if (ppath <> "") then
+    let ppath_l =
+        if (ppath_s <> "") then
             path
         else
             res.ppath
@@ -445,13 +445,13 @@ let unified_diff_immut ?(cmds=false) ?recurse:_ (path : string list) (Diff_strin
             let str_diff =
                 str_diff ^ (added_lines ~cmds:cmds res.right path)
             in
-            Diff_string { res with ppath = ppath; udiff = str_diff; }
+            Diff_string { res with ppath = ppath_l; udiff = str_diff; }
     | Subtracted ->
             let str_diff =
                 str_diff ^ (removed_lines ~cmds:cmds res.right path)
             in
-            Diff_string { res with ppath = ppath; udiff = str_diff; }
-    | Unchanged -> Diff_string (res)
+            Diff_string { res with ppath = ppath_l; udiff = str_diff; }
+    | Unchanged -> Diff_string { res with ppath = ppath_l; }
     | Updated v ->
             let ov = Config_tree.get_values res.left path in
             match ov, v with
@@ -462,7 +462,7 @@ let unified_diff_immut ?(cmds=false) ?recurse:_ (path : string list) (Diff_strin
                     let str_diff =
                         str_diff ^ (added_lines ~cmds:cmds res.right path)
                     in
-                    Diff_string { res with ppath = ppath; udiff = str_diff; }
+                    Diff_string { res with ppath = ppath_l; udiff = str_diff; }
             | _, _ -> let ov_set = ValueS.of_list ov in
                       let v_set = ValueS.of_list v in
                       let sub_vals = ValueS.elements (ValueS.diff ov_set v_set) in
@@ -485,7 +485,7 @@ let unified_diff_immut ?(cmds=false) ?recurse:_ (path : string list) (Diff_strin
                       let str_diff =
                           str_diff ^ (added_lines ~cmds:cmds add_tree path)
                       in
-                      Diff_string { res with ppath = ppath; udiff = str_diff;
+                      Diff_string { res with ppath = ppath_l; udiff = str_diff;
                                              sub = sub_tree; add = add_tree; }
 
 let add_empty_path src_node dest_node path =
