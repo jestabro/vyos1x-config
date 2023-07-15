@@ -117,7 +117,7 @@ let right_opt_pairs n m =
  *)
 let opt_cmp o0 o1 =
     match o0, o1 with
-    | Some v0, Some v1 -> compare v0 v1
+    | Some v0, Some v1 -> compare (name_of v0) (name_of v1)
     | None, None -> 0
     | None, Some _ -> 1
     | Some _, None -> -1
