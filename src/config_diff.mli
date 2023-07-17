@@ -43,7 +43,7 @@ type _ result =
 type 'a diff_func_immut = ?recurse:bool -> string list -> 'a result -> change -> 'a result
 
 exception Incommensurable
-exception Empty_comparison
+exception Empty_comparison of string list
 exception Nonexistent_child
 
 val make_diff_trees : Config_tree.t -> Config_tree.t -> diff_trees

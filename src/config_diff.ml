@@ -1,7 +1,7 @@
 type change = Unchanged | Added | Subtracted | Updated of string list
 
 exception Incommensurable
-exception Empty_comparison
+exception Empty_comparison of string list
 exception Nonexistent_child
 
 (* temp comment: begin transition to immutable structure *)
@@ -136,7 +136,7 @@ let get_opt_name left_opt right_opt =
     | Some left_node, None -> name_of left_node
     | None, Some right_node -> name_of right_node
     | Some left_node, Some _ -> name_of left_node
-    | None, None -> raise Empty_comparison
+    | None, None -> raise (Empty_comparison ["get_opt_name"])
 
 let update_path path left_opt right_opt =
     let name = get_opt_name left_opt right_opt in
@@ -164,7 +164,7 @@ let rec diff (path : string list) (f : diff_func) (l : (Config_tree.t option * C
         | Some left_node, Some right_node ->
                 (f ~recurse:false path Unchanged;
                 diff path f (opt_zip left_node right_node))
-        | None, None -> raise Empty_comparison)
+        | None, None -> raise (Empty_comparison path))
         ; diff path f ls
 
 let rec diff_immut (path : string list) (res: 'a result) (f : 'a diff_func_immut) (l : (Config_tree.t option * Config_tree.t option) list) =
@@ -184,7 +184,8 @@ let rec diff_immut (path : string list) (res: 'a result) (f : 'a diff_func_immut
             | Some left_node, Some right_node ->
                     let ret = f ~recurse:false path res Unchanged
                     in diff_immut path ret f (opt_zip left_node right_node)
-            | None, None -> raise Empty_comparison)
+            | None, None ->
+                    let a = ["diff_immut"] @ path in raise (Empty_comparison a))
         in diff_immut path res f ls
 
 (* copy node paths between trees *)
@@ -308,7 +309,7 @@ let tree_at_path path node =
     try
         let node = Vytree.get node path in
         make Config_tree.default_data "" [node]
-    with Vytree.Nonexistent_path -> raise Empty_comparison
+    with Vytree.Nonexistent_path -> raise (Empty_comparison path)
 
 (* call recursive diff on config_trees with decorate_trees as the diff_func *)
 let compare path left right =
@@ -500,21 +501,21 @@ let compare_at_path_maybe_empty left right path =
     let left =
         try
             tree_at_path path left
-        with Empty_comparison ->
+        with (Empty_comparison path) ->
             try
                 let left = add_empty_path right left path in
                 tree_at_path path left
              with Vytree.Nonexistent_path ->
-                 raise Empty_comparison
+                 raise (Empty_comparison path)
      and right =
         try
             tree_at_path path right
-        with Empty_comparison ->
+        with (Empty_comparison path) ->
             try
                 let right = add_empty_path left right path in
                 tree_at_path path right
              with Vytree.Nonexistent_path ->
-                 raise Empty_comparison
+                 raise (Empty_comparison path)
     in (left, right)
 
 let show_diff ?(cmds=false) path left right =
