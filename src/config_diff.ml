@@ -455,7 +455,7 @@ let unified_diff_immut ?(cmds=false) ?recurse:_ (path : string list) (Diff_strin
             Diff_string { res with ppath = ppath_l; udiff = str_diff; }
     | Subtracted ->
             let str_diff =
-                str_diff ^ (removed_lines ~cmds:cmds res.right path)
+                str_diff ^ (removed_lines ~cmds:cmds res.left path)
             in
             Diff_string { res with ppath = ppath_l; udiff = str_diff; }
     | Unchanged -> Diff_string { res with ppath = ppath_l; }
