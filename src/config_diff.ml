@@ -467,23 +467,19 @@ let unified_diff_immut ?(cmds=false) ?recurse:_ (path : string list) (Diff_strin
                       let v_set = ValueS.of_list v in
                       let sub_vals = ValueS.elements (ValueS.diff ov_set v_set) in
                       let add_vals = ValueS.elements (ValueS.diff v_set ov_set) in
-                      let sub_tree =
+                      let str_diff =
                           if not (is_empty sub_vals) then
-                              clone ~set_values:(Some sub_vals) res.left res.sub path
-                          else
-                              res.sub
+                              let sub_tree =
+                                  clone ~set_values:(Some sub_vals) res.left res.sub path
+                              in str_diff ^ (removed_lines ~cmds:cmds sub_tree path)
+                          else str_diff
                       in
-                      let add_tree =
+                      let str_diff =
                           if not (is_empty add_vals) then
-                              clone ~set_values:(Some add_vals) res.right res.add path
-                          else
-                              res.add
-                      in
-                      let str_diff =
-                          str_diff ^ (removed_lines ~cmds:cmds sub_tree path)
-                      in
-                      let str_diff =
-                          str_diff ^ (added_lines ~cmds:cmds add_tree path)
+                              let add_tree =
+                                  clone ~set_values:(Some add_vals) res.right res.add path
+                              in str_diff ^ (added_lines ~cmds:cmds add_tree path)
+                          else str_diff
                       in
                       Diff_string { res with ppath = ppath_l; udiff = str_diff; }
 
