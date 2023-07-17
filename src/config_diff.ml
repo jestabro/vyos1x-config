@@ -5,6 +5,7 @@ exception Empty_comparison
 exception Nonexistent_child
 
 (* temp comment: begin transition to immutable structure *)
+(* this version keeps the original mutable version for comparison *)
 module Diff_tree = struct
     type t = { left: Config_tree.t;
                right: Config_tree.t;
