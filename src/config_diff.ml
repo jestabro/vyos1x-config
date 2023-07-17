@@ -309,7 +309,8 @@ let tree_at_path path node =
     try
         let node = Vytree.get node path in
         make Config_tree.default_data "" [node]
-    with Vytree.Nonexistent_path -> raise (Empty_comparison path)
+    with Vytree.Nonexistent_path ->
+        let a = ["tree_at_path"] @ path in raise (Empty_comparison a)
 
 (* call recursive diff on config_trees with decorate_trees as the diff_func *)
 let compare path left right =
@@ -506,7 +507,7 @@ let compare_at_path_maybe_empty left right path =
                 let left = add_empty_path right left path in
                 tree_at_path path left
              with Vytree.Nonexistent_path ->
-                 raise (Empty_comparison path)
+                 let a = ["compare_at_path_maybe"] @ path in raise (Empty_comparison a)
      and right =
         try
             tree_at_path path right
@@ -515,7 +516,7 @@ let compare_at_path_maybe_empty left right path =
                 let right = add_empty_path left right path in
                 tree_at_path path right
              with Vytree.Nonexistent_path ->
-                 raise (Empty_comparison path)
+                 let a = ["compare_at_path_maybe"] @ path in raise (Empty_comparison a)
     in (left, right)
 
 let show_diff ?(cmds=false) path left right =
