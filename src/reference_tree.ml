@@ -200,6 +200,7 @@ let load_from_xml reftree file =
         let xml = Xml.parse_file file in
         xml_to_reftree xml reftree
     with
+    | Bad_interface_definition msg -> raise (Bad_interface_definition msg)
     | Xml.File_not_found msg -> raise (Bad_interface_definition msg)
     | Xml.Error e -> raise (Bad_interface_definition (Xml.error e))
 
