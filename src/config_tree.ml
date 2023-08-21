@@ -161,7 +161,7 @@ struct
 
   let render_values indent_str name values =
     match values with
-    | [] -> Printf.sprintf "%s%s { }\n" indent_str name
+    | [] -> Printf.sprintf "%s%s\n" indent_str name
     | [v] -> Printf.sprintf "%s%s \"%s\"\n" indent_str name (Util.escape_string v)
     | _  -> 
       let rendered = List.map (fun s -> Printf.sprintf "%s%s \"%s\"" indent_str name (Util.escape_string s)) values in
