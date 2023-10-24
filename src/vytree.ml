@@ -191,8 +191,11 @@ let get_existent_path node path =
     in List.rev (aux node path [])
 
 let children_of_path node path =
-    let node' = get node path in
-    list_children node'
+    match path with
+    | [] -> list_children node
+    | _ ->
+        let node' = get node path in
+        list_children node'
 
 let copy node old_path new_path =
     if exists node new_path then raise Duplicate_child else
