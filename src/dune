@@ -1,3 +1,5 @@
+(include_subdirs unqualified)
+
 (ocamllex vyos1x_lexer)
 (menhir
  (flags --table)
@@ -6,8 +8,17 @@
 (library
  (name vyos1x)
  (public_name vyos1x-config)
+ (modules config_diff config_tree generate parser reference_tree util vylist vytree vyos1x_parser vyos1x_lexer)
  (libraries yojson menhirLib fileutils pcre xml-light)
  (preprocess (pps ppx_deriving_yojson))
  (foreign_stubs
   (language c)
   (names lexical_numeric_compare)))
+
+(executable
+ (name test_result)
+ (modules func test_result)
+ (flags -cclib -lvyatta-cfg)
+ (foreign_stubs
+  (language c)
+  (names adapter)))
