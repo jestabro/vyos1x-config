@@ -18,7 +18,8 @@
 (executable
  (name test_result)
  (modules func test_result)
- (flags -cclib -lvyatta-cfg)
+ (flags (:standard -cclib -lstdc++ -cclib -lvyatta-cfg))
+ (link_flags (:standard -cclib -lstdc++ -cclib -lvyatta-cfg))
  (foreign_stubs
   (language c)
   (names adapter)))
