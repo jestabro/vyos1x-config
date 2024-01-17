@@ -9,7 +9,7 @@ let print_res res =
 let some_path = ["interfaces"; "ethernet"; "eth0"; "description"; "foo"]
 
 let () =
-  let h = Func.handle_init () in
-  let res_set = Func.set_result h some_path (List.length some_path) in
+  let h = Cli.handle_init () in
+  let res_set = Cli.set_result h some_path (List.length some_path) in
   print_res res_set;
-  Func.handle_free h
+  Cli.handle_free h

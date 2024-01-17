@@ -8,16 +8,16 @@
 (library
  (name vyos1x)
  (public_name vyos1x-config)
- (modules config_diff config_tree generate parser reference_tree util vylist vytree vyos1x_parser vyos1x_lexer)
+ (modules config_tree config_diff vylist vytree vyos1x_parser vyos1x_lexer parser util reference_tree generate)
  (libraries yojson menhirLib fileutils pcre xml-light)
  (preprocess (pps ppx_deriving_yojson))
  (foreign_stubs
   (language c)
   (names lexical_numeric_compare)))
 
-(executable
- (name test_result)
- (modules func test_result)
+(executables
+ (names cli_set cli_delete)
+ (modules cli cli_set cli_delete)
  (flags (:standard -cclib -lstdc++ -cclib -lvyatta-cfg))
  (link_flags (:standard -cclib -lstdc++ -cclib -lvyatta-cfg))
  (foreign_stubs
