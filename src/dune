@@ -17,7 +17,7 @@
 
 (executables
  (names cli_set cli_delete)
- (modules cli cli_set cli_delete)
+ (modules cstore cli_set cli_delete)
  (flags (:standard -cclib -lstdc++ -cclib -lvyatta-cfg))
  (link_flags (:standard -cclib -lstdc++ -cclib -lvyatta-cfg))
  (foreign_stubs

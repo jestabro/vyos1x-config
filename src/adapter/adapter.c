@@ -29,12 +29,12 @@ CAMLprim value handle_init( value unit )
     CAMLlocal1( ml_val );
 
     void *h = vy_cstore_init();
-    ml_val = val_of_voidptr( h );
+    ml_val = val_of_voidptr(h);
 
     CAMLreturn ( ml_val );
 }
 
-CAMLprim value handle_free ( value handle )
+CAMLprim value handle_free( value handle )
 {
     CAMLparam1( handle );
 
@@ -42,6 +42,31 @@ CAMLprim value handle_free ( value handle )
     vy_cstore_free(h);
 
     CAMLreturn( Val_unit );
+}
+
+CAMLprim value in_config_session_handle( value handle )
+{
+    CAMLparam1( handle );
+    CAMLlocal1( ml_val );
+
+    void *h = voidptr_of_val(handle);
+    int v = vy_in_session(h);
+    ml_val = Val_bool(v);
+
+    CAMLreturn( ml_val );
+}
+
+CAMLprim value in_config_session( value unit )
+{
+    CAMLparam1( unit );
+    CAMLlocal1( ml_val );
+
+    void *h = vy_cstore_init();
+    int v = vy_in_session(h);
+    vy_cstore_free(h);
+    ml_val = Val_bool(v);
+
+    CAMLreturn( ml_val );
 }
 
 CAMLprim value set_path( value handle, value ml_list, value len )
