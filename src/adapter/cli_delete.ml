@@ -16,13 +16,13 @@ let () = Arg.parse args (fun s -> path_arg := s::!path_arg) usage
 
 let () =
     let path_del = List.rev !path_arg in
-    let h = Cstore.handle_init () in
-    if not (Cstore.in_config_session_handle h) then
-        (Cstore.handle_free h;
+    let h = Vy_adapter.handle_init () in
+    if not (Vy_adapter.in_config_session_handle h) then
+        (Vy_adapter.handle_free h;
         Printf.printf "not in config session\n")
     else
-        let res_del = Cstore.delete_path h path_del (List.length path_del) in
+        let res_del = Vy_adapter.delete_path h path_del (List.length path_del) in
         Printf.printf "deleting [%s]\n" (String.concat " " (path_del));
         print_res res_del;
-        Cstore.handle_free h
+        Vy_adapter.handle_free h
 

@@ -16,13 +16,13 @@ let () = Arg.parse args (fun s -> path_arg := s::!path_arg) usage
 
 let () =
     let path_set = List.rev !path_arg in
-    let h = Cstore.handle_init () in
-    if not (Cstore.in_config_session_handle h) then
-        (Cstore.handle_free h;
+    let h = Vy_adapter.handle_init () in
+    if not (Vy_adapter.in_config_session_handle h) then
+        (Vy_adapter.handle_free h;
         Printf.printf "not in config session\n")
     else
-        let res_set = Cstore.set_path h path_set (List.length path_set) in
+        let res_set = Vy_adapter.set_path h path_set (List.length path_set) in
         Printf.printf "setting [%s]\n" (String.concat " " (path_set));
         print_res res_set;
-        Cstore.handle_free h
+        Vy_adapter.handle_free h
 
