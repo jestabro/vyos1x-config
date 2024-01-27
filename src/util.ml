@@ -21,7 +21,7 @@ let escape_string s =
   let rec escape_if_needed s n i =
     if i >= n then s else
       match unsafe_get s i with
-      | '\"' | '\\' | '\000'..'\031' | '\127' ->
+      | '\"' | '\000'..'\031' | '\127' ->
           bts (B.escaped (bos s))
       | _ -> escape_if_needed s n (i+1)
   in
