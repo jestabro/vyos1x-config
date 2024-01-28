@@ -11,7 +11,7 @@ end
 
 module Diff_string : sig
     type t = { left: Config_tree.t;
-               right : Config_tree.t;
+               right: Config_tree.t;
                skel: Config_tree.t;
                ppath: string list;
                udiff: string;
@@ -21,7 +21,10 @@ end
 module Diff_cstore : sig
     type t = { left: Config_tree.t;
                right: Config_tree.t;
+               add: Config_tree.t;
+               del: Config_tree.t;
                handle: int;
+               out: string;
              }
 end
 
