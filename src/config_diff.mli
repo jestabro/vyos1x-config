@@ -33,6 +33,8 @@ type _ result =
     | Diff_string : Diff_string.t -> Diff_string.t result
     | Diff_cstore : Diff_cstore.t -> Diff_cstore.t result
 
+val eval_result : 'a result -> 'a
+
 exception Incommensurable
 exception Empty_comparison
 exception Nonexistent_child
