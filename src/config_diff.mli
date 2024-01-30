@@ -1,3 +1,4 @@
+type change = Unchanged | Added | Subtracted | Updated of string list
 
 module Diff_tree : sig
     type t = { left: Config_tree.t;
@@ -34,6 +35,9 @@ type _ result =
     | Diff_cstore : Diff_cstore.t -> Diff_cstore.t result
 
 val eval_result : 'a result -> 'a
+
+type 'a diff_func = ?recurse:bool -> string list -> 'a result -> change -> 'a result
+val diff : string list -> 'a diff_func -> 'a result -> Config_tree.t option * Config_tree.t option -> 'a result
 
 exception Incommensurable
 exception Empty_comparison
