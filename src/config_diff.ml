@@ -26,8 +26,6 @@ end
 module Diff_cstore = struct
     type t = { left: Config_tree.t;
                right: Config_tree.t;
-               add: Config_tree.t;
-               del: Config_tree.t;
                handle: int;
                out: string;
              }
@@ -59,8 +57,6 @@ let make_diff_string l r = Diff_string { left = l; right = r;
                            }
 
 let make_diff_cstore l r h = Diff_cstore { left = l; right = r;
-                                add = (Config_tree.make "");
-                                del = (Config_tree.make "");
                                 handle = h;
                                 out = "";
 }
