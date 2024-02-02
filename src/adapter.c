@@ -84,7 +84,7 @@ CAMLprim value set_path( value handle, value ml_list, value len )
 
     void *h = voidptr_of_val( handle );
     out_data_t *out_data = vy_set_path(h, path, length);
-    if (out_data->length > 0) {
+    if (out_data != NULL && out_data->length > 0) {
         data_len = out_data->length;
         raw_data = out_data->data;
         ml_data = caml_alloc_initialized_string(data_len, raw_data);
@@ -115,7 +115,7 @@ CAMLprim value set_path_reversed( value handle, value ml_list, value len )
 
     void *h = voidptr_of_val( handle );
     out_data_t *out_data = vy_set_path(h, path, length);
-    if (out_data->length > 0) {
+    if (out_data != NULL && out_data->length > 0) {
         data_len = out_data->length;
         raw_data = out_data->data;
         ml_data = caml_alloc_initialized_string(data_len, raw_data);
@@ -146,7 +146,7 @@ CAMLprim value delete_path( value handle, value ml_list, value len )
 
     void *h = voidptr_of_val( handle );
     out_data_t *out_data = vy_delete_path(h, path, length);
-    if (out_data->length > 0) {
+    if (out_data != NULL && out_data->length > 0) {
         data_len = out_data->length;
         raw_data = out_data->data;
         ml_data = caml_alloc_initialized_string(data_len, raw_data);
@@ -177,7 +177,7 @@ CAMLprim value delete_path_reversed( value handle, value ml_list, value len )
 
     void *h = voidptr_of_val( handle );
     out_data_t *out_data = vy_delete_path(h, path, length);
-    if (out_data->length > 0) {
+    if (out_data != NULL && out_data->length > 0) {
         data_len = out_data->length;
         raw_data = out_data->data;
         ml_data = caml_alloc_initialized_string(data_len, raw_data);
