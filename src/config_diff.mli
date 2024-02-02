@@ -45,3 +45,14 @@ val diff_tree : string list -> Config_tree.t -> Config_tree.t -> Config_tree.t
 val show_diff : ?cmds:bool -> string list -> Config_tree.t -> Config_tree.t -> string
 val tree_union : Config_tree.t -> Config_tree.t -> Config_tree.t
 val make_diff_cstore : Config_tree.t -> Config_tree.t -> int -> Diff_cstore.t result
+
+val handle_init : unit -> int
+val handle_free : int -> unit
+val in_config_session_handle : int -> bool
+val in_config_session : unit -> bool
+val set_path : int -> string list -> int -> string
+val delete_path : int -> string list -> int -> string
+val set_path_reversed : int -> string list -> int -> string
+val delete_path_reversed : int -> string list -> int -> string
+
+val load_config : Config_tree.t -> Config_tree.t -> string
