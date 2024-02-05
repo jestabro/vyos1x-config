@@ -11,7 +11,7 @@
  (foreign_stubs
   (language c)
   (names adapter)
-  (flags (:standard -I/usr/include/vyatta-cfg)))
+  (flags (:standard -I/usr/include/vyatta-cfg -O2)))
  (c_library_flags -lstdc++ -lvyatta-cfg)
  (foreign_stubs
   (language c)

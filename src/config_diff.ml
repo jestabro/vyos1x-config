@@ -1,11 +1,3 @@
-external handle_init: unit -> int = "handle_init"
-external handle_free: int -> unit = "handle_free"
-external in_config_session_handle: int -> bool = "in_config_session_handle"
-external in_config_session: unit -> bool = "in_config_session"
-external set_path: int -> string list -> int -> int = "set_path"
-external delete_path: int -> string list -> int -> int = "delete_path"
-external set_path_reversed: int -> string list -> int -> int = "set_path_reversed"
-external delete_path_reversed: int -> string list -> int -> int = "delete_path_reversed"
 
 type change = Unchanged | Added | Subtracted | Updated of string list
 
@@ -443,7 +435,7 @@ let rec tree_union s t =
 
 let add_value handle acc out v =
     let acc = v :: acc in
-    let ret = set_path_reversed handle acc (List.length acc) in
+    let ret = Adapter.set_path_reversed handle acc (List.length acc) in
     match ret with
     | 0 -> out
     | 1 -> out ^ "set failed"
@@ -451,7 +443,7 @@ let add_value handle acc out v =
 
 let add_values handle acc out vs =
     match vs with
-    | [] -> (let ret = set_path_reversed handle acc (List.length acc) in
+    | [] -> (let ret = Adapter.set_path_reversed handle acc (List.length acc) in
             match ret with
             | 0 -> out
             | 1 -> out ^ "set failed"
@@ -469,21 +461,21 @@ let rec add_path handle acc out (node : Config_tree.t) =
 
 let del_value handle acc out v =
     let acc = v :: acc in
-    let ret = delete_path_reversed handle acc (List.length acc) in
+    let ret = Adapter.delete_path_reversed handle acc (List.length acc) in
     match ret with
     | 0 -> out
     | _ -> out ^ "delete failed"
 
 let del_values handle acc out vs =
     match vs with
-    | [] -> (let ret = delete_path_reversed handle acc (List.length acc) in
+    | [] -> (let ret = Adapter.delete_path_reversed handle acc (List.length acc) in
             match ret with
             | 0 -> out
             | _ -> out ^ "delete failed")
     | _ -> List.fold_left (del_value handle acc) out vs
 
 let del_path handle path out =
-    let ret = delete_path handle path (List.length path) in
+    let ret = Adapter.delete_path handle path (List.length path) in
     match ret with
     | 0 -> out
     | _ -> out ^ "delete failed"
@@ -512,14 +504,14 @@ let cstore_diff ?recurse:_ (path : string list) (Diff_cstore res) (m : change) =
                       Diff_cstore { res with out = out }
 
 let load_config left right =
-    let h = handle_init () in
-    if not (in_config_session_handle h) then
-        (handle_free h;
+    let h = Adapter.handle_init () in
+    if not (Adapter.in_config_session_handle h) then
+        (Adapter.handle_free h;
         let out = "not in config session\n" in
         out)
     else
         let dcstore = make_diff_cstore left right h in
         let dcstore = diff [] cstore_diff dcstore (Option.some left, Option.some right) in
         let ret = eval_result dcstore in
-        handle_free h;
+        Adapter.handle_free h;
         ret.out
