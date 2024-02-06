@@ -69,7 +69,7 @@ CAMLprim value in_config_session( value unit )
 CAMLprim value set_path( value handle, value ml_list, value len )
 {
     CAMLparam3( handle, ml_list, len );
-    CAMLlocal2( ml_data, head );
+    CAMLlocal1( head );
     int length = Int_val(len);
     const char *path[length];
     int err;
@@ -83,15 +83,13 @@ CAMLprim value set_path( value handle, value ml_list, value len )
 
     void *h = voidptr_of_val( handle );
     err = vy_set_path(h, path, length);
-    ml_data = Val_int(err);
-
-    CAMLreturn( ml_data );
+    return Val_int(err);
 }
 
 CAMLprim value set_path_reversed( value handle, value ml_list, value len )
 {
     CAMLparam3( handle, ml_list, len );
-    CAMLlocal2( ml_data, head );
+    CAMLlocal1( head );
     int length = Int_val(len);
     const char *path[length];
     int err;
@@ -105,15 +103,13 @@ CAMLprim value set_path_reversed( value handle, value ml_list, value len )
 
     void *h = voidptr_of_val( handle );
     err = vy_set_path(h, path, length);
-    ml_data = Val_int(err);
-
-    CAMLreturn( ml_data );
+    return Val_int(err);
 }
 
 CAMLprim value delete_path( value handle, value ml_list, value len )
 {
     CAMLparam3( handle, ml_list, len );
-    CAMLlocal2( ml_data, head );
+    CAMLlocal1( head );
     int length = Int_val(len);
     const char *path[length];
     int err;
@@ -127,15 +123,13 @@ CAMLprim value delete_path( value handle, value ml_list, value len )
 
     void *h = voidptr_of_val( handle );
     err = vy_delete_path(h, path, length);
-    ml_data = Val_int(err);
-
-    CAMLreturn( ml_data );
+    return Val_int(err);
 }
 
 CAMLprim value delete_path_reversed( value handle, value ml_list, value len )
 {
     CAMLparam3( handle, ml_list, len );
-    CAMLlocal2( ml_data, head );
+    CAMLlocal1( head );
     int length = Int_val(len);
     const char *path[length];
     int err;
@@ -149,7 +143,5 @@ CAMLprim value delete_path_reversed( value handle, value ml_list, value len )
 
     void *h = voidptr_of_val( handle );
     err = vy_delete_path(h, path, length);
-    ml_data = Val_int(err);
-
-    CAMLreturn( ml_data );
+    return Val_int(err);
 }
