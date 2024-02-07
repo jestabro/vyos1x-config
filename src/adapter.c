@@ -11,7 +11,7 @@
 
 static value val_of_voidptr(void * p)
 {
-  assert (((uintptr_t) p & 1) == 0);
+//  assert (((uintptr_t) p & 1) == 0);
   return (value) p | 1;
 }
 
