@@ -10,9 +10,15 @@
  (preprocess (pps ppx_deriving_yojson))
  (foreign_stubs
   (language c)
+  (mode native)
   (names adapter)
   (flags (:standard -I/usr/include/vyatta-cfg -O2)))
  (c_library_flags -lstdc++ -lvyatta-cfg)
+ (foreign_stubs
+  (language c)
+  (mode byte)
+  (names adapter_b)
+  (flags (:standard -I/usr/include/vyatta-cfg -O2)))
  (foreign_stubs
   (language c)
   (names lexical_numeric_compare)))
