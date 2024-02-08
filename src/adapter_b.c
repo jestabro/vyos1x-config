@@ -66,19 +66,15 @@ CAMLprim value in_config_session( value unit )
     CAMLreturn( ml_val );
 }
 
-CAMLprim value set_path( value handle, value ml_list, value len )
+CAMLprim value set_path( value handle, value ml_array, value len )
 {
-    CAMLparam3( handle, ml_list, len );
-    CAMLlocal1( head );
     int length = Int_val(len);
     const char *path[length];
     int err;
-    int ii = 0;
-    while ( ml_list != Val_emptylist )
+    int i;
+    for (i=0; i < length; i++)
     {
-        head = Field(ml_list, 0);
-        path[ii++] = String_val(head);
-        ml_list = Field(ml_list, 1);
+        path[i++] = String_val(Field(ml_array, i));
     }
 
     void *h = voidptr_of_val( handle );
@@ -86,19 +82,15 @@ CAMLprim value set_path( value handle, value ml_list, value len )
     return Val_int(err);
 }
 
-CAMLprim value set_path_reversed( value handle, value ml_list, value len )
+CAMLprim value set_path_reversed( value handle, value ml_array, value len )
 {
-    CAMLparam3( handle, ml_list, len );
-    CAMLlocal1( head );
     int length = Int_val(len);
     const char *path[length];
     int err;
-    int ii = 0;
-    while ( ml_list != Val_emptylist )
+    int i;
+    for (i=0; i < length; i++)
     {
-        head = Field(ml_list, 0);
-        path[length-1-ii++] = String_val(head);
-        ml_list = Field(ml_list, 1);
+        path[length-1-i++] = String_val(Field(ml_array, i));
     }
 
     void *h = voidptr_of_val( handle );
@@ -106,19 +98,15 @@ CAMLprim value set_path_reversed( value handle, value ml_list, value len )
     return Val_int(err);
 }
 
-CAMLprim value delete_path( value handle, value ml_list, value len )
+CAMLprim value delete_path( value handle, value ml_array, value len )
 {
-    CAMLparam3( handle, ml_list, len );
-    CAMLlocal1( head );
     int length = Int_val(len);
     const char *path[length];
     int err;
-    int ii = 0;
-    while ( ml_list != Val_emptylist )
+    int i;
+    for (i=0; i < length; i++)
     {
-        head = Field(ml_list, 0);
-        path[ii++] = String_val(head);
-        ml_list = Field(ml_list, 1);
+        path[i++] = String_val(Field(ml_array, i));
     }
 
     void *h = voidptr_of_val( handle );
@@ -126,19 +114,15 @@ CAMLprim value delete_path( value handle, value ml_list, value len )
     return Val_int(err);
 }
 
-CAMLprim value delete_path_reversed( value handle, value ml_list, value len )
+CAMLprim value delete_path_reversed( value handle, value ml_array, value len )
 {
-    CAMLparam3( handle, ml_list, len );
-    CAMLlocal1( head );
     int length = Int_val(len);
     const char *path[length];
     int err;
-    int ii = 0;
-    while ( ml_list != Val_emptylist )
+    int i;
+    for (i=0; i < length; i++)
     {
-        head = Field(ml_list, 0);
-        path[length-1-ii++] = String_val(head);
-        ml_list = Field(ml_list, 1);
+        path[length-1-i++] = String_val(Field(ml_array, i));
     }
 
     void *h = voidptr_of_val( handle );

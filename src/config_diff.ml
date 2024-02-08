@@ -435,7 +435,8 @@ let rec tree_union s t =
 
 let add_value handle acc out v =
     let acc = v :: acc in
-    let ret = Adapter.set_path_reversed handle acc (List.length acc) in
+    let arr = Array.of_list acc in
+    let ret = Adapter.set_path_reversed handle arr (Array.length arr) in
     match ret with
     | 0 -> out
     | 1 -> out ^ "set failed"
@@ -443,7 +444,8 @@ let add_value handle acc out v =
 
 let add_values handle acc out vs =
     match vs with
-    | [] -> (let ret = Adapter.set_path_reversed handle acc (List.length acc) in
+    | [] -> (let arr = Array.of_list acc in
+            let ret = Adapter.set_path_reversed handle arr (Array.length arr) in
             match ret with
             | 0 -> out
             | 1 -> out ^ "set failed"
@@ -461,21 +463,24 @@ let rec add_path handle acc out (node : Config_tree.t) =
 
 let del_value handle acc out v =
     let acc = v :: acc in
-    let ret = Adapter.delete_path_reversed handle acc (List.length acc) in
+    let arr = Array.of_list acc in
+    let ret = Adapter.delete_path_reversed handle arr (Array.length arr) in
     match ret with
     | 0 -> out
     | _ -> out ^ "delete failed"
 
 let del_values handle acc out vs =
     match vs with
-    | [] -> (let ret = Adapter.delete_path_reversed handle acc (List.length acc) in
+    | [] -> (let arr = Array.of_list acc in
+            let ret = Adapter.delete_path_reversed handle arr (Array.length arr) in
             match ret with
             | 0 -> out
             | _ -> out ^ "delete failed")
     | _ -> List.fold_left (del_value handle acc) out vs
 
 let del_path handle path out =
-    let ret = Adapter.delete_path handle path (List.length path) in
+    let arr = Array.of_list path in
+    let ret = Adapter.delete_path handle arr (Array.length arr) in
     match ret with
     | 0 -> out
     | _ -> out ^ "delete failed"
