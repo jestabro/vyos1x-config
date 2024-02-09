@@ -68,6 +68,7 @@ CAMLprim value in_config_session( value unit )
 
 CAMLprim value set_path( value handle, value ml_array, value len )
 {
+    CAMLparam3( handle, ml_array, len );
     int length = Int_val(len);
     const char *path[length];
     int err;
@@ -84,6 +85,7 @@ CAMLprim value set_path( value handle, value ml_array, value len )
 
 CAMLprim value set_path_reversed( value handle, value ml_array, value len )
 {
+    CAMLparam3( handle, ml_array, len );
     int length = Int_val(len);
     const char *path[length];
     int err;
@@ -100,6 +102,7 @@ CAMLprim value set_path_reversed( value handle, value ml_array, value len )
 
 CAMLprim value delete_path( value handle, value ml_array, value len )
 {
+    CAMLparam3( handle, ml_array, len );
     int length = Int_val(len);
     const char *path[length];
     int err;
@@ -116,6 +119,7 @@ CAMLprim value delete_path( value handle, value ml_array, value len )
 
 CAMLprim value delete_path_reversed( value handle, value ml_array, value len )
 {
+    CAMLparam3( handle, ml_array, len );
     int length = Int_val(len);
     const char *path[length];
     int err;
