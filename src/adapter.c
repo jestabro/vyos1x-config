@@ -68,68 +68,72 @@ CAMLprim value in_config_session( value unit )
 
 CAMLprim value set_path( value handle, value ml_array, value len )
 {
-    CAMLparam3( handle, ml_array, len );
+//    CAMLparam3( handle, ml_array, len );
     int length = Int_val(len);
     const char *path[length];
     int err;
     int i;
-    for (i=0; i < length; i++)
-    {
-        path[i++] = String_val(Field(ml_array, i));
-    }
 
     void *h = voidptr_of_val( handle );
+    for (i=0; i < length; i++)
+    {
+        path[i] = String_val(Field(ml_array, i));
+    }
     err = vy_set_path(h, path, length);
+
     return Val_int(err);
 }
 
 CAMLprim value set_path_reversed( value handle, value ml_array, value len )
 {
-    CAMLparam3( handle, ml_array, len );
+//    CAMLparam3( handle, ml_array, len );
     int length = Int_val(len);
     const char *path[length];
     int err;
     int i;
-    for (i=0; i < length; i++)
-    {
-        path[length-1-i++] = String_val(Field(ml_array, i));
-    }
 
     void *h = voidptr_of_val( handle );
+    for (i=0; i < length; i++)
+    {
+        path[length-1-i] = String_val(Field(ml_array, i));
+    }
     err = vy_set_path(h, path, length);
+
     return Val_int(err);
 }
 
 CAMLprim value delete_path( value handle, value ml_array, value len )
 {
-    CAMLparam3( handle, ml_array, len );
+//    CAMLparam3( handle, ml_array, len );
     int length = Int_val(len);
     const char *path[length];
     int err;
     int i;
-    for (i=0; i < length; i++)
-    {
-        path[i++] = String_val(Field(ml_array, i));
-    }
 
     void *h = voidptr_of_val( handle );
+    for (i=0; i < length; i++)
+    {
+        path[i] = String_val(Field(ml_array, i));
+    }
     err = vy_delete_path(h, path, length);
+
     return Val_int(err);
 }
 
 CAMLprim value delete_path_reversed( value handle, value ml_array, value len )
 {
-    CAMLparam3( handle, ml_array, len );
+//    CAMLparam3( handle, ml_array, len );
     int length = Int_val(len);
     const char *path[length];
     int err;
     int i;
-    for (i=0; i < length; i++)
-    {
-        path[length-1-i++] = String_val(Field(ml_array, i));
-    }
 
     void *h = voidptr_of_val( handle );
+    for (i=0; i < length; i++)
+    {
+        path[length-1-i] = String_val(Field(ml_array, i));
+    }
     err = vy_delete_path(h, path, length);
+
     return Val_int(err);
 }
