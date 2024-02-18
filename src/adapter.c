@@ -66,7 +66,7 @@ CAMLprim value in_config_session( value unit )
     CAMLreturn( ml_val );
 }
 
-CAMLprim value set_path( value handle, value ml_list, value len )
+CAMLprim value set_path_forward( value handle, value ml_list, value len )
 {
     CAMLparam3( handle, ml_list, len );
     CAMLlocal2( ml_data, head );
