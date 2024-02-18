@@ -7,7 +7,14 @@
  (name vyos1x)
  (public_name vyos1x-config)
  (libraries yojson menhirLib fileutils pcre xml-light)
- (flags (:standard -cclib -lstdc++ -cclib -lvyatta-cfg))
+ (flags (:standard
+         -verbose
+         -noautolink
+         -cclib -Wl,-Bstatic
+         -cclib -lvyatta-cfg
+         -cclib -Wl,-Bdynamic
+         -cclib -lvyos1x_stubs
+         -cclib -lstdc++))
  (preprocess (pps ppx_deriving_yojson))
  (foreign_stubs
   (language c)
