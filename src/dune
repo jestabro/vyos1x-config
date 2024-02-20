@@ -11,12 +11,11 @@
          -verbose
          -noautolink
          -cclib -L/usr/lib/x86_64-linux-gnu
-         -ccopt -fPIC
          -cclib -Wl,-Bstatic
          -cclib -lvyatta-cfg
+         -cclib -lglib-2.0
          -cclib -Wl,-Bdynamic
          -cclib -lvyos1x_stubs
-         -cclib -lglib-2.0
          -cclib -lgio-2.0
          -cclib -lboost_filesystem
          -cclib -lgobject-2.0
