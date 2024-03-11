@@ -20,13 +20,15 @@ let get_lexing_position lexbuf =
 
 (* Modification of Bytes.escaped to leave UTF-8 bytes unescaped *)
 let escape_bytes s =
+  let char_code_zero = 48 in
+  let high_bit_set = 128 in
   let n = ref 0 in
   for i = 0 to B.length s - 1 do
     n := !n +
       (match B.unsafe_get s i with
        | '\"' | '\\' | '\n' | '\t' | '\r' | '\b' -> 2
        | ' ' .. '~' -> 1
-       | c when (char_code c > 127) -> 1
+       | c when (char_code c >= high_bit_set) -> 1
        | _ -> 4)
   done;
   if !n = B.length s then B.copy s else begin
@@ -45,16 +47,16 @@ let escape_bytes s =
       | '\b' ->
           B.unsafe_set s' !n '\\'; incr n; B.unsafe_set s' !n 'b'
       | (' ' .. '~') as c -> B.unsafe_set s' !n c
-      | c when (char_code c > 127) -> B.unsafe_set s' !n c
+      | c when (char_code c >= high_bit_set ) -> B.unsafe_set s' !n c
       | c ->
           let a = char_code c in
           B.unsafe_set s' !n '\\';
           incr n;
-          B.unsafe_set s' !n (char_chr (48 + a / 100));
+          B.unsafe_set s' !n (char_chr (char_code_zero + a / 100));
           incr n;
-          B.unsafe_set s' !n (char_chr (48 + (a / 10) mod 10));
+          B.unsafe_set s' !n (char_chr (char_code_zero + (a / 10) mod 10));
           incr n;
-          B.unsafe_set s' !n (char_chr (48 + a mod 10));
+          B.unsafe_set s' !n (char_chr (char_code_zero + a mod 10));
       end;
       incr n
     done;
