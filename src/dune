@@ -7,8 +7,11 @@
  (name vyos1x)
  (public_name vyos1x-config)
  (libraries yojson menhirLib fileutils pcre xml-light)
- (flags (:standard -cclib -lstdc++ -cclib -lvyatta-cfg))
  (preprocess (pps ppx_deriving_yojson))
  (foreign_stubs
   (language c)
-  (names lexical_numeric_compare adapter)))
+  (names lexical_numeric_compare))
+ (c_library_flags -lstdc++ -lvyatta-cfg)
+ (foreign_stubs
+  (language c)
+  (names adapter)))
