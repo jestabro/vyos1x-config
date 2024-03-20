@@ -2,10 +2,10 @@ external handle_init: unit -> int = "handle_init"
 external handle_free: int -> unit = "handle_free"
 external in_config_session_handle: int -> bool = "in_config_session_handle"
 external in_config_session: unit -> bool = "in_config_session"
-external set_path: int -> string list -> int -> string = "set_path"
-external delete_path: int -> string list -> int -> string = "delete_path"
-external set_path_reversed: int -> string list -> int -> string = "set_path_reversed"
-external delete_path_reversed: int -> string list -> int -> string = "delete_path_reversed"
+external set_path: int -> string list -> int -> int = "set_path" [@@noalloc]
+external delete_path: int -> string list -> int -> int = "delete_path" [@@noalloc]
+external set_path_reversed: int -> string list -> int -> int = "set_path_reversed" [@@noalloc]
+external delete_path_reversed: int -> string list -> int -> int = "delete_path_reversed" [@@noalloc]
 
 type change = Unchanged | Added | Subtracted | Updated of string list
 
@@ -472,11 +472,21 @@ let rec tree_union s t =
 
 let add_value handle acc out v =
     let acc = v :: acc in
-    out ^ (set_path_reversed handle acc (List.length acc))
+    let res = set_path_reversed handle acc (List.length acc) in
+    match res with
+    | 0 -> out
+    | 1 -> out ^ "invalid set"
+    | 2 -> out ^ "invalid cfg"
+    | _ -> out ^ "unknown"
 
 let add_values handle acc out vs =
     match vs with
-    | [] -> out ^ (set_path_reversed handle acc (List.length acc))
+    | [] -> (let res = set_path_reversed handle acc (List.length acc) in
+            match res with
+            | 0 -> out
+            | 1 -> out ^ "invalid set"
+            | 2 -> out ^ "invalid cfg"
+            | _ -> out ^ "unknown")
     | _ -> List.fold_left (add_value handle acc) out vs
 
 let rec add_path handle acc out (node : Config_tree.t) =
@@ -490,15 +500,27 @@ let rec add_path handle acc out (node : Config_tree.t) =
 
 let del_value handle acc out v =
     let acc = v :: acc in
-    out ^ (delete_path_reversed handle acc (List.length acc))
+    let res = delete_path_reversed handle acc (List.length acc) in
+    match res with
+    | 0 -> out
+    | 4 -> out ^ "invalid del"
+    | _ -> out ^ "unknown"
 
 let del_values handle acc out vs =
     match vs with
-    | [] -> out ^ (delete_path_reversed handle acc (List.length acc))
+    | [] -> (let res = delete_path_reversed handle acc (List.length acc) in
+            match res with
+            | 0 -> out
+            | 4 -> out ^ "invalid del"
+            | _ -> out ^ "unknown")
     | _ -> List.fold_left (del_value handle acc) out vs
 
 let del_path handle path out =
-    out ^ (delete_path handle path (List.length path))
+    let res = delete_path handle path (List.length path) in
+    match res with
+    | 0 -> out
+    | 4 -> out ^ "invalid del"
+    | _ -> out ^ "unknown"
 
 let cstore_diff ?recurse:_ (path : string list) (Diff_cstore res) (m : change) =
     let handle = res.handle in
