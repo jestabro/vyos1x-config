@@ -390,6 +390,37 @@ let show_diff ?(cmds=false) path left right =
         in
         strs
 
+let is_terminal_path node path =
+    try
+        let n = Vytree.get node path in
+        match (Vytree.children_of_node n) with
+        | [] -> true
+        | _ -> false
+    with Vytree.Nonexistent_path -> false
+
+(* mask function; mask applied on right *)
+let mask_func ?(recurse=true) (path : string list) (Diff_tree res) (m : change) =
+    match m with
+    | Added -> Diff_tree (res)
+    | Subtracted ->
+            (match path with
+            | [_] -> Diff_tree (res)
+            |  _  -> if (is_terminal_path res.right (list_but_last path)) then
+                         Diff_tree {res with inter = clone res.left res.inter path; }
+                     else Diff_tree (res))
+    | Unchanged -> (match recurse with
+               | false -> Diff_tree (res)
+               | true  -> Diff_tree {res with inter = clone res.left res.inter path; })
+    | Updated _ -> Diff_tree {res with inter = clone res.left res.inter path; }
+
+(* call recursive diff with mask_func; mask applied on right *)
+let mask_tree left right =
+    let trees = make_diff_trees left right in
+    let d = diff [] mask_func trees (Option.some left, Option.some right)
+    in
+    let res = eval_result d in
+    res.inter
+
 let union_of_values (n : Config_tree.t) (m : Config_tree.t) =
     let set_n = ValueS.of_list (data_of n).values in
     let set_m = ValueS.of_list (data_of m).values in
