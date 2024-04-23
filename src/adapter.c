@@ -20,7 +20,7 @@ static void * voidptr_of_val(value v)
   return (void *) (v & ~1);
 }
 
-CAMLprim value handle_init( value unit )
+CAMLprim value cstore_handle_init( value unit )
 {
     CAMLparam1( unit );
     CAMLlocal1( ml_val );
@@ -31,12 +31,33 @@ CAMLprim value handle_init( value unit )
     CAMLreturn ( ml_val );
 }
 
-CAMLprim value handle_free( value handle )
+CAMLprim value cstore_handle_free( value handle )
 {
     CAMLparam1( handle );
 
     void * h = voidptr_of_val(handle);
     vy_cstore_free(h);
+
+    CAMLreturn( Val_unit );
+}
+
+CAMLprim value cpaths_handle_init( value unit )
+{
+    CAMLparam1( unit );
+    CAMLlocal1( ml_val );
+
+    void *h = vy_cpaths_init();
+    ml_val = val_of_voidptr(h);
+
+    CAMLreturn ( ml_val );
+}
+
+CAMLprim value cpaths_handle_free( value handle )
+{
+    CAMLparam1( handle );
+
+    void * h = voidptr_of_val(handle);
+    vy_cpaths_free(h);
 
     CAMLreturn( Val_unit );
 }
@@ -68,116 +89,74 @@ CAMLprim value in_config_session( value unit )
 
 CAMLprim value set_path( value handle, value ml_list, value len )
 {
-    CAMLparam3( handle, ml_list, len );
-    CAMLlocal2( ml_data, head );
     void *h = voidptr_of_val( handle );
     int length = Int_val(len);
-    char *raw_data;
-    size_t data_len;
     const char *path[length];
     int ii = 0;
 
     while ( ml_list != Val_emptylist )
     {
-        head = Field(ml_list, 0);
-        path[ii++] = String_val(head);
+        path[ii++] = String_val(Field(ml_list, 0));
         ml_list = Field(ml_list, 1);
     }
-    out_data_t *out_data = vy_set_path(h, path, length);
-
-    if (out_data != NULL && out_data->length > 0) {
-        data_len = out_data->length;
-        raw_data = out_data->data;
-        ml_data = caml_alloc_initialized_string(data_len, raw_data);
-    }
-    else {
-        ml_data = caml_copy_string("");
-    }
-    out_data_free(out_data);
-
-    CAMLreturn( ml_data );
+    vy_add_set_path(h, path, length);
 }
 
 CAMLprim value set_path_reversed( value handle, value ml_list, value len )
 {
-    CAMLparam3( handle, ml_list, len );
-    CAMLlocal2( ml_data, head );
     void *h = voidptr_of_val( handle );
     int length = Int_val(len);
-    char *raw_data;
-    size_t data_len;
     const char *path[length];
     int ii = 0;
+
     while ( ml_list != Val_emptylist )
     {
-        head = Field(ml_list, 0);
-        path[length-1-ii++] = String_val(head);
+        path[length-1-ii++] = String_val(Field(ml_list, 0));
         ml_list = Field(ml_list, 1);
     }
-    out_data_t *out_data = vy_set_path(h, path, length);
-
-    if (out_data != NULL && out_data->length > 0) {
-        data_len = out_data->length;
-        raw_data = out_data->data;
-        ml_data = caml_alloc_initialized_string(data_len, raw_data);
-    }
-    else {
-        ml_data = caml_copy_string("");
-    }
-    out_data_free(out_data);
-
-    CAMLreturn( ml_data );
+    vy_add_set_path(h, path, length);
 }
 
 CAMLprim value delete_path( value handle, value ml_list, value len )
 {
-    CAMLparam3( handle, ml_list, len );
-    CAMLlocal2( ml_data, head );
     void *h = voidptr_of_val( handle );
     int length = Int_val(len);
-    char *raw_data;
-    size_t data_len;
     const char *path[length];
     int ii = 0;
+
     while ( ml_list != Val_emptylist )
     {
-        head = Field(ml_list, 0);
-        path[ii++] = String_val(head);
+        path[ii++] = String_val(Field(ml_list, 0));
         ml_list = Field(ml_list, 1);
     }
-    out_data_t *out_data = vy_delete_path(h, path, length);
-
-    if (out_data != NULL && out_data->length > 0) {
-        data_len = out_data->length;
-        raw_data = out_data->data;
-        ml_data = caml_alloc_initialized_string(data_len, raw_data);
-    }
-    else {
-        ml_data = caml_copy_string("");
-    }
-    out_data_free(out_data);
-
-    CAMLreturn( ml_data );
+    vy_add_del_path(h, path, length);
 }
 
 CAMLprim value delete_path_reversed( value handle, value ml_list, value len )
 {
-    CAMLparam3( handle, ml_list, len );
-    CAMLlocal2( ml_data, head );
     void *h = voidptr_of_val( handle );
     int length = Int_val(len);
-    char *raw_data;
-    size_t data_len;
     const char *path[length];
     int ii = 0;
+
     while ( ml_list != Val_emptylist )
     {
-        head = Field(ml_list, 0);
-        path[length-1-ii++] = String_val(head);
+        path[length-1-ii++] = String_val(Field(ml_list, 0));
         ml_list = Field(ml_list, 1);
     }
-    out_data_t *out_data = vy_delete_path(h, path, length);
+    vy_add_del_path(h, path, length);
+}
 
+CAMLprim value load_paths( value cstore_handle, value cpaths_handle )
+{
+    CAMLparam2( cstore_handle, cpaths_handle );
+    CAMLlocal1( ml_data );
+    void *h = voidptr_of_val( cstore_handle );
+    void *p = voidptr_of_val( cpaths_handle );
+    char *raw_data;
+    size_t data_len;
+
+    out_data_t *out_data =  vy_load_paths(h, p);
     if (out_data != NULL && out_data->length > 0) {
         data_len = out_data->length;
         raw_data = out_data->data;

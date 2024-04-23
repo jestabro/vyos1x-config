@@ -1,11 +1,12 @@
-external handle_init: unit -> int = "handle_init"
-external handle_free: int -> unit = "handle_free"
+external cstore_handle_init: unit -> int = "cstore_handle_init"
+external cstore_handle_free: int -> unit = "cstore_handle_free"
+external cpaths_handle_init: unit -> int = "cpaths_handle_init"
+external cpaths_handle_free: int -> unit = "cpaths_handle_free"
 external in_config_session_handle: int -> bool = "in_config_session_handle"
-external in_config_session: unit -> bool = "in_config_session"
-external set_path: int -> string list -> int -> string = "set_path"
-external delete_path: int -> string list -> int -> string = "delete_path"
-external set_path_reversed: int -> string list -> int -> string = "set_path_reversed"
-external delete_path_reversed: int -> string list -> int -> string = "delete_path_reversed"
+external delete_path: int -> string list -> int -> unit = "delete_path" [@@noalloc]
+external set_path_reversed: int -> string list -> int -> unit = "set_path_reversed" [@@noalloc]
+external delete_path_reversed: int -> string list -> int -> unit = "delete_path_reversed" [@@noalloc]
+external load_paths: int -> int -> string = "load_paths"
 
 type change = Unchanged | Added | Subtracted | Updated of string list
 
@@ -67,7 +68,7 @@ let make_diff_string l r = Diff_string { left = l; right = r;
 
 let make_diff_cstore l r h = Diff_cstore { left = l; right = r;
                                 handle = h;
-                                out = "";
+                                out = "test";
 }
 
 let name_of n = Vytree.name_of_node n
@@ -472,11 +473,12 @@ let rec tree_union s t =
 
 let add_value handle acc out v =
     let acc = v :: acc in
-    out ^ (set_path_reversed handle acc (List.length acc))
+    set_path_reversed handle acc (List.length acc);
+    out
 
 let add_values handle acc out vs =
     match vs with
-    | [] -> out ^ (set_path_reversed handle acc (List.length acc))
+    | [] -> set_path_reversed handle acc (List.length acc); out
     | _ -> List.fold_left (add_value handle acc) out vs
 
 let rec add_path handle acc out (node : Config_tree.t) =
@@ -490,15 +492,15 @@ let rec add_path handle acc out (node : Config_tree.t) =
 
 let del_value handle acc out v =
     let acc = v :: acc in
-    out ^ (delete_path_reversed handle acc (List.length acc))
+    delete_path_reversed handle acc (List.length acc); out
 
 let del_values handle acc out vs =
     match vs with
-    | [] -> out ^ (delete_path_reversed handle acc (List.length acc))
+    | [] -> delete_path_reversed handle acc (List.length acc); out
     | _ -> List.fold_left (del_value handle acc) out vs
 
 let del_path handle path out =
-    out ^ (delete_path handle path (List.length path))
+    delete_path handle path (List.length path); out
 
 let cstore_diff ?recurse:_ (path : string list) (Diff_cstore res) (m : change) =
     let handle = res.handle in
@@ -524,14 +526,17 @@ let cstore_diff ?recurse:_ (path : string list) (Diff_cstore res) (m : change) =
                       Diff_cstore { res with out = out }
 
 let load_config left right =
-    let h = handle_init () in
+    let h = cstore_handle_init () in
+    let p = cpaths_handle_init () in
     if not (in_config_session_handle h) then
-        (handle_free h;
+        (cstore_handle_free h;
         let out = "not in config session\n" in
         out)
     else
-        let dcstore = make_diff_cstore left right h in
+        let dcstore = make_diff_cstore left right p in
         let dcstore = diff [] cstore_diff dcstore (Option.some left, Option.some right) in
         let ret = eval_result dcstore in
-        handle_free h;
-        ret.out
+        let out = load_paths h p in
+        cpaths_handle_free p;
+        cstore_handle_free h;
+        ret.out ^ out
