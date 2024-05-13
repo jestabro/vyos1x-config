@@ -47,4 +47,4 @@ val tree_union : Config_tree.t -> Config_tree.t -> Config_tree.t
 val mask_tree : Config_tree.t -> Config_tree.t -> Config_tree.t
 val make_diff_cstore : Config_tree.t -> Config_tree.t -> int -> Diff_cstore.t result
 
-val load_config : Config_tree.t -> Config_tree.t -> string
+val load_config : Config_tree.t -> Config_tree.t -> int -> string

@@ -6,7 +6,7 @@ external in_config_session_handle: int -> bool = "in_config_session_handle"
 external delete_path: int -> string list -> int -> unit = "delete_path" [@@noalloc]
 external set_path_reversed: int -> string list -> int -> unit = "set_path_reversed" [@@noalloc]
 external delete_path_reversed: int -> string list -> int -> unit = "delete_path_reversed" [@@noalloc]
-external load_paths: int -> int -> string = "load_paths"
+external load_paths: int -> int -> int -> string = "load_paths"
 
 type change = Unchanged | Added | Subtracted | Updated of string list
 
@@ -525,7 +525,7 @@ let cstore_diff ?recurse:_ (path : string list) (Diff_cstore res) (m : change) =
                       let out = add_values handle acc out add_vals in
                       Diff_cstore { res with out = out }
 
-let load_config left right =
+let load_config left right legacy =
     let h = cstore_handle_init () in
     let p = cpaths_handle_init () in
     if not (in_config_session_handle h) then
@@ -536,7 +536,7 @@ let load_config left right =
         let dcstore = make_diff_cstore left right p in
         let dcstore = diff [] cstore_diff dcstore (Option.some left, Option.some right) in
         let ret = eval_result dcstore in
-        let out = load_paths h p in
+        let out = load_paths h p legacy in
         cpaths_handle_free p;
         cstore_handle_free h;
         ret.out ^ out

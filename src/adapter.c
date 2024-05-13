@@ -147,16 +147,17 @@ CAMLprim value delete_path_reversed( value handle, value ml_list, value len )
     vy_add_del_path(h, path, length);
 }
 
-CAMLprim value load_paths( value cstore_handle, value cpaths_handle )
+CAMLprim value load_paths( value cstore_handle, value cpaths_handle, value legacy )
 {
-    CAMLparam2( cstore_handle, cpaths_handle );
+    CAMLparam3( cstore_handle, cpaths_handle, legacy );
     CAMLlocal1( ml_data );
+    int leg = Int_val(legacy);
     void *h = voidptr_of_val( cstore_handle );
     void *p = voidptr_of_val( cpaths_handle );
     char *raw_data;
     size_t data_len;
 
-    out_data_t *out_data =  vy_load_paths(h, p);
+    out_data_t *out_data =  vy_load_paths(h, p, leg);
     if (out_data != NULL && out_data->length > 0) {
         data_len = out_data->length;
         raw_data = out_data->data;
