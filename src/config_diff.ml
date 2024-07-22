@@ -1,3 +1,12 @@
+external handle_init: unit -> int = "handle_init"
+external handle_free: int -> unit = "handle_free"
+external in_config_session_handle: int -> bool = "in_config_session_handle"
+external in_config_session: unit -> bool = "in_config_session"
+external set_path: int -> string list -> int -> string = "set_path"
+external delete_path: int -> string list -> int -> string = "delete_path"
+external set_path_reversed: int -> string list -> int -> string = "set_path_reversed"
+external delete_path_reversed: int -> string list -> int -> string = "delete_path_reversed"
+
 type change = Unchanged | Added | Subtracted | Updated of string list
 
 exception Incommensurable
@@ -27,6 +36,7 @@ module Diff_cstore = struct
     type t = { left: Config_tree.t;
                right: Config_tree.t;
                handle: int;
+               out: string;
              }
 end
 
@@ -43,18 +53,22 @@ let eval_result : type a. a result -> a = function
 type 'a diff_func = ?recurse:bool -> string list -> 'a result -> change -> 'a result
 
 let make_diff_trees l r = Diff_tree { left = l; right = r;
-                                  add = (Config_tree.make "");
-                                  sub = (Config_tree.make "");
-                                  del = (Config_tree.make "");
-                                  inter = (Config_tree.make "");
+                                add = (Config_tree.make "");
+                                sub = (Config_tree.make "");
+                                del = (Config_tree.make "");
+                                inter = (Config_tree.make "");
 }
 
-let make_diff_string l r = Diff_string {
-                               left = l; right = r;
-                               skel = (Config_tree.make "");
-                               ppath = [];
-                               udiff = "";
+let make_diff_string l r = Diff_string { left = l; right = r;
+                                skel = (Config_tree.make "");
+                                ppath = [];
+                                udiff = "";
                            }
+
+let make_diff_cstore l r h = Diff_cstore { left = l; right = r;
+                                handle = h;
+                                out = "";
+}
 
 let name_of n = Vytree.name_of_node n
 let data_of n = Vytree.data_of_node n
@@ -74,6 +88,9 @@ module TreeOrd = struct
         Util.lexical_numeric_compare (name_of a) (name_of b)
 end
 module ChildrenS = Set.Make(TreeOrd)
+
+(* unordered set of values *)
+module ValueSet = Set.Make(String)
 
 let (^~) (node : Config_tree.t) (node' : Config_tree.t) =
   name_of node = name_of node' &&
@@ -450,3 +467,71 @@ let rec tree_union s t =
         | None, None -> raise Nonexistent_child
     in
     List.fold_left (fun x c -> child_of_union s x c) t (union_of_children s t)
+
+(* configure Cstore from a diff function, and call diff to load config *)
+
+let add_value handle acc out v =
+    let acc = v :: acc in
+    out ^ (set_path_reversed handle acc (List.length acc))
+
+let add_values handle acc out vs =
+    match vs with
+    | [] -> out ^ (set_path_reversed handle acc (List.length acc))
+    | _ -> List.fold_left (add_value handle acc) out vs
+
+let rec add_path handle acc out (node : Config_tree.t) =
+    let acc = (Vytree.name_of_node node) :: acc in
+    let children = Vytree.children_of_node node in
+    match children with
+    | [] -> let data = Vytree.data_of_node node in
+            let values = data.values in
+            add_values handle acc out values
+    | _  -> List.fold_left (add_path handle acc) out children
+
+let del_value handle acc out v =
+    let acc = v :: acc in
+    out ^ (delete_path_reversed handle acc (List.length acc))
+
+let del_values handle acc out vs =
+    match vs with
+    | [] -> out ^ (delete_path_reversed handle acc (List.length acc))
+    | _ -> List.fold_left (del_value handle acc) out vs
+
+let del_path handle path out =
+    out ^ (delete_path handle path (List.length path))
+
+let cstore_diff ?recurse:_ (path : string list) (Diff_cstore res) (m : change) =
+    let handle = res.handle in
+    match m with
+    | Added -> let node = Vytree.get res.right path in
+               let acc = List.tl (List.rev path) in
+               Diff_cstore { res with out = add_path handle acc res.out node }
+    | Subtracted -> Diff_cstore { res with out = del_path handle path res.out }
+    | Unchanged -> Diff_cstore (res)
+    | Updated v ->
+            let ov = Config_tree.get_values res.left path in
+            let acc = List.rev path in
+            match ov, v with
+            | [x], [y] -> let out = del_value handle acc res.out x in
+                          let out = add_value handle acc out y in
+                          Diff_cstore { res with out = out }
+            | _, _ -> let ov_set = ValueSet.of_list ov in
+                      let v_set = ValueSet.of_list v in
+                      let sub_vals = ValueSet.elements (ValueSet.diff ov_set v_set) in
+                      let add_vals = ValueSet.elements (ValueSet.diff v_set ov_set) in
+                      let out = del_values handle acc res.out sub_vals in
+                      let out = add_values handle acc out add_vals in
+                      Diff_cstore { res with out = out }
+
+let load_config left right =
+    let h = handle_init () in
+    if not (in_config_session_handle h) then
+        (handle_free h;
+        let out = "not in config session\n" in
+        out)
+    else
+        let dcstore = make_diff_cstore left right h in
+        let dcstore = diff [] cstore_diff dcstore (Option.some left, Option.some right) in
+        let ret = eval_result dcstore in
+        handle_free h;
+        ret.out
