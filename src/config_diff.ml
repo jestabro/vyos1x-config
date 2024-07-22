@@ -1,11 +1,3 @@
-external handle_init: unit -> int = "handle_init"
-external handle_free: int -> unit = "handle_free"
-external in_config_session_handle: int -> bool = "in_config_session_handle"
-external in_config_session: unit -> bool = "in_config_session"
-external set_path: int -> string list -> int -> string = "set_path"
-external delete_path: int -> string list -> int -> string = "delete_path"
-external set_path_reversed: int -> string list -> int -> string = "set_path_reversed"
-external delete_path_reversed: int -> string list -> int -> string = "delete_path_reversed"
 
 type change = Unchanged | Added | Subtracted | Updated of string list
 
@@ -469,6 +461,46 @@ let rec tree_union s t =
     List.fold_left (fun x c -> child_of_union s x c) t (union_of_children s t)
 
 (* configure Cstore from a diff function, and call diff to load config *)
+
+open Ctypes
+open Foreign
+
+let libvyatta = Dl.dlopen ~flags:[Dl.RTLD_LAZY] ~filename:"libvyatta-cfg.so"
+
+let cstore_init = foreign ~from:libvyatta "vy_cstore_init" (void @-> returning uint64_t)
+let cstore_free = foreign ~from:libvyatta "vy_cstore_free" (uint64_t @-> returning void)
+let in_session = foreign ~from:libvyatta "vy_in_session" (uint64_t @-> returning int)
+let vy_set_path = foreign ~from:libvyatta "vy_set_path" (uint64_t @-> (ptr void) @-> size_t @-> returning int)
+let vy_del_path = foreign ~from:libvyatta "vy_delete_path" (uint64_t @-> (ptr void) @-> size_t @-> returning int)
+
+let handle_init () = Unsigned.UInt64.to_int (cstore_init ())
+let handle_free h = cstore_free (Unsigned.UInt64.of_int h)
+let in_config_session_handle h = in_session (Unsigned.UInt64.of_int h) = 1
+let in_config_session () = in_config_session_handle (handle_init ())
+let set_path handle path len =
+    let arr = CArray.of_list string path in
+    let res = vy_set_path (Unsigned.UInt64.of_int handle) (to_voidp (CArray.start arr)) (Unsigned.Size_t.of_int len)
+    in
+    match res with
+    | 0 -> ""
+    | 1 -> "Invalid set path: " ^ path_to_string path
+    | _ -> "Failed set path: " ^ path_to_string path
+
+let delete_path handle path len =
+    let arr = CArray.of_list string path in
+    let res = vy_del_path (Unsigned.UInt64.of_int handle) (to_voidp (CArray.start arr)) (Unsigned.Size_t.of_int len)
+    in
+    match res with
+    | 0 -> ""
+    | _ -> "Failed delete path " ^ path_to_string path
+
+let set_path_reversed handle path len =
+    let path = List.rev path in
+    set_path handle path len
+
+let delete_path_reversed handle path len =
+    let path = List.rev path in
+    delete_path handle path len
 
 let add_value handle acc out v =
     let acc = v :: acc in
