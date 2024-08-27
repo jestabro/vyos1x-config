@@ -10,8 +10,4 @@
  (preprocess (pps ppx_deriving_yojson))
  (foreign_stubs
   (language c)
-  (names lexical_numeric_compare))
- (c_library_flags -lstdc++ -lvyatta-cfg)
- (foreign_stubs
-  (language c)
-  (names adapter)))
+  (names lexical_numeric_compare)))
