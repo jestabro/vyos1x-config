@@ -50,3 +50,5 @@ val render_config : ?ord_val:bool -> t -> string
 val render_json : t -> string
 
 val render_json_ast : t -> string
+
+val render_at_level : t -> string list -> string
