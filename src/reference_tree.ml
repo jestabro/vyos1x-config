@@ -74,7 +74,7 @@ let completion_help_type_of_string v s =
     | _ -> raise (Bad_interface_definition
                   (Printf.sprintf "list, path, or script expected, %s found" s))
 
-(** Find a child node in xml-lite *)
+(** Find a child node in xml-light *)
 let find_xml_child name xml =
     let find_aux e =
         match e with
@@ -113,7 +113,7 @@ let load_completion_help_from_xml d c =
         match c with
         | Xml.Element (_, _, [Xml.PCData s]) ->
                 l @ [completion_help_type_of_string (Xml.tag c) s]
-        | _ -> raise (Bad_interface_definition "Malformed completion help")
+        | _ -> raise (Bad_interface_definition ("Malformed completion help :" ^ Xml.to_string c))
     in Xml.fold aux [] c in
     let l = d.completion_help in
     let l' = l @ res in
@@ -131,7 +131,7 @@ let load_constraint_from_xml d c =
         | Xml.Element ("validator", [("name", n)], _) ->
             let cs = (Value_checker.External (n, None)) :: d.constraints in
             {d with constraints=cs}
-        | _ -> raise (Bad_interface_definition "Malformed constraint")
+        | _ -> raise (Bad_interface_definition ("Malformed constraint: " ^ Xml.to_string c))
     in Xml.fold aux d c
 
 let load_constraint_group_from_xml d c =
@@ -146,7 +146,7 @@ let load_constraint_group_from_xml d c =
         | Xml.Element ("validator", [("name", n)], _) ->
             let cs = (Value_checker.External (n, None)) :: d.constraint_group in
             {d with constraint_group=cs}
-        | _ -> raise (Bad_interface_definition "Malformed constraint")
+        | _ -> raise (Bad_interface_definition ("Malformed constraint: " ^ Xml.to_string c))
     in Xml.fold aux d c
 
 let data_from_xml d x =
@@ -166,7 +166,7 @@ let data_from_xml d x =
             {d with priority=Some i}
         | Xml.Element ("hidden", _, _) -> {d with hidden=true}
         | Xml.Element ("secret", _, _) -> {d with secret=true}
-        | _ -> raise (Bad_interface_definition "Malformed property tag")
+        | _ -> raise (Bad_interface_definition ("Malformed property tag: " ^ Xml.to_string x))
     in Xml.fold aux d x
 
 let rec insert_from_xml basepath reftree xml =
