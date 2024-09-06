@@ -38,6 +38,8 @@ val default : t
 
 val load_from_xml : t -> string -> t
 
+val find_xml_child : string -> Xml_light_types.xml -> Xml_light_types.xml option
+
 val validate_path : string -> t -> string list -> string list * string option
 
 val is_multi : t -> string list -> bool
