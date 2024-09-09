@@ -8,11 +8,17 @@ let node_type_to_yojson = function
     | Tag -> `String "tag"
     | Other -> `String "other"
 
+let node_type_of_yojson = function
+    | `String "leaf" -> Ok Leaf
+    | `String "tag" -> Ok Tag
+    | `String "other" -> Ok Other
+    | json -> Error (Yojson.Safe.to_string json)
+
 type completion_help_type =
     | List of string [@name "list"]
     | Path of string [@name "path"]
     | Script of string [@name "script"]
-    [@@deriving to_yojson]
+    [@@deriving yojson]
 
 type ref_node_data = {
     node_type: node_type;
@@ -29,9 +35,9 @@ type ref_node_data = {
     default_value: string option;
     hidden: bool;
     secret: bool;
-} [@@deriving to_yojson]
+} [@@deriving yojson]
 
-type t = ref_node_data Vytree.t [@@deriving to_yojson]
+type t = ref_node_data Vytree.t [@@deriving yojson]
 
 exception Bad_interface_definition of string
 

@@ -17,6 +17,8 @@ type t = config_node_data Vytree.t [@@deriving yojson]
 
 val default_data : config_node_data
 
+val default : t
+
 val make : string -> t
 
 val create_node : t -> string list -> t
