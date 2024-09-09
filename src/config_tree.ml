@@ -22,6 +22,8 @@ let default_data = {
     leaf = false;
 }
 
+let default = Vytree.make default_data ""
+
 let make name = Vytree.make default_data name
 
 let op_to_string op =
