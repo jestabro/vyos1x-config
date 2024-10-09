@@ -340,6 +340,17 @@ let get_completion_data reftree path =
         (data.node_type, data.multi, data.help)
     in List.map aux (Vytree.children_of_node @@ Vytree.get reftree path)
 
+(* Convert from config path to reference tree path *)
+let refpath reftree path =
+    let rec aux acc p =
+    match acc, p with
+    | [], h :: tl -> aux (acc @ [h]) tl
+    | _, [h] -> if is_tag reftree acc then acc else acc @ [h]
+    | _, h :: h' :: tl -> if is_tag reftree acc then aux (acc @ [h']) tl
+                          else aux (acc @ [h]) ([h'] @ tl)
+    | _, [] -> acc
+    in aux [] path
+
 module JSONRenderer =
 struct
     let render_data data =
