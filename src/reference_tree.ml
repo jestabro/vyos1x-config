@@ -245,11 +245,12 @@ let has_illegal_characters name =
 
    A list of strings is a valid path that can be created in the config tree unless:
      1. It's a tag node without a child
-     2. It's a non-valueless leaf node without a value
-     3. It's a valueless node with a value
-     4. It's a non-valueless leaf node with garbage after the value
-     5. It's a non-leaf, non-tag node with a name that doesn't exist
-        in the reference tree
+     2. It's a tag node with an invalid tag value
+     3. It's a non-valueless leaf node without a value
+     4. It's a valueless leaf node with a value
+     5. It's a non-valueless leaf node with an invalid value
+     6. It's a node that is neither leaf nor tag value with a name that
+        doesn't exist in the reference tree
  *)
 let validate_path validators_dir node path =
     let show_path p = Printf.sprintf "[%s]" @@ Util.string_of_list (List.rev p) in
@@ -257,41 +258,106 @@ let validate_path validators_dir node path =
         let data = Vytree.data_of_node node in
         match data.node_type with
         | Leaf ->
-            (match path with
-             | [] ->
-                 if data.valueless then (List.rev acc, None)
-                 else raise (Validation_error
-                   (Printf.sprintf "Node %s requires a value" (show_path acc) ))
-             | [p] ->
+            begin
+            match path with
+            | [] ->
+                if data.valueless then (List.rev acc, None)
+                else
+                let msg =
+                    Printf.sprintf "Configuration path %s requires a value" (show_path acc)
+                in raise (Validation_error msg)
+            | [p] ->
                  if not data.valueless then
-                     (if (Value_checker.validate_any validators_dir data.constraints p) then (List.rev acc, Some p)
-                     else raise (Validation_error data.constraint_error_message))
-                 else raise (Validation_error
-                   (Printf.sprintf "Node %s cannot have a value" (show_path acc)))
-             | _ -> raise (Validation_error (Printf.sprintf "Path %s is too long" (show_path acc))))
+                     let res, out =
+                         try Value_checker.validate_any validators_dir data.constraints p
+                         with Value_checker.Bad_validator msg -> raise (Validation_error msg)
+                     in
+                     match res with
+                     | true -> (List.rev acc, Some p)
+                     | false ->
+                        raise (Validation_error (out ^ data.constraint_error_message))
+                 else
+                     let msg = Printf.sprintf "Node %s cannot have a value" (show_path acc)
+                     in raise (Validation_error msg)
+            | _ ->
+                let msg = Printf.sprintf "Path %s is too long" (show_path acc)
+                in raise (Validation_error msg)
+            end
         | Tag ->
-            (match path with
-             | p :: p' :: ps ->
-                 (match (has_illegal_characters p) with
-                 | Some c -> raise (Validation_error (Printf.sprintf "Illegal character \"%s\" in node name \"%s\"" c p))
-                 | None ->
-                     if (Value_checker.validate_any validators_dir data.constraints p) then
-                         let child = Vytree.find node p' in
-                         (match child with
-                          | Some c -> aux c ps (p' :: p :: acc)
-                          | None -> raise (Validation_error (Printf.sprintf "Node %s has no child %s" (show_path acc) p')))
-                     else raise (Validation_error (Printf.sprintf "%s is not a valid child name for node %s" p (show_path acc))))
-             | [p] -> if (Value_checker.validate_any validators_dir data.constraints p) then (List.rev acc, None)
-                          else raise (Validation_error (Printf.sprintf "Node %s has no child %s" (show_path acc) p))
-             | _ -> raise (Validation_error (Printf.sprintf "Path %s is incomplete" (show_path acc))))
+            begin
+            match path with
+            | p :: p' :: ps ->
+                begin
+                match (has_illegal_characters p) with
+                | Some c ->
+                    let msg =
+                        Printf.sprintf "Illegal character \"%s\" in node name \"%s\"" c p
+                    in raise (Validation_error msg)
+                | None ->
+                    let res, out =
+                        try Value_checker.validate_any validators_dir data.constraints p
+                        with Value_checker.Bad_validator msg -> raise (Validation_error msg)
+                    in
+                    begin
+                    match res with
+                    | true ->
+                        let child = Vytree.find node p' in
+                        begin
+                        match child with
+                        | Some c -> aux c ps (p' :: p :: acc)
+                        | None ->
+                            let msg =
+                                Printf.sprintf "Node %s has no child %s" (show_path acc) p'
+                            in raise (Validation_error msg)
+                        end
+                    | false ->
+                        let msg =
+                            Printf.sprintf "%s is not a valid child name for node %s" p (show_path acc)
+                        in
+                        let ret = Printf.sprintf "%s\n%s\n%s" out data.constraint_error_message msg
+                        in raise (Validation_error ret)
+                    end
+                end
+            | [p] ->
+                begin
+                match (has_illegal_characters p) with
+                | Some c ->
+                    let msg =
+                        Printf.sprintf "Illegal character \"%s\" in node name \"%s\"" c p
+                    in raise (Validation_error msg)
+                | None ->
+                    let res, out =
+                        try Value_checker.validate_any validators_dir data.constraints p
+                        with Value_checker.Bad_validator msg -> raise (Validation_error msg)
+                    in
+                    begin
+                    match res with
+                    | true -> (List.rev acc, None)
+                    | false ->
+                        let msg =
+                            Printf.sprintf "%s is not a valid child name for node %s" p (show_path acc)
+                        in
+                        let ret = Printf.sprintf "%s\n%s\n%s" out data.constraint_error_message msg
+                        in raise (Validation_error ret)
+                    end
+                end
+            | _ ->
+                let msg =
+                    Printf.sprintf "Configuration path %s requires a value" (show_path acc)
+                in raise (Validation_error msg)
+            end
         | Other ->
-            (match path with
-             | [] -> (List.rev acc, None)
-             | p :: ps ->
-                 let child = Vytree.find node p in
-                 (match child with
-                  | Some c -> aux c ps (p :: acc)
-                  | None -> raise (Validation_error ((Printf.sprintf "Path %s is incomplete" (show_path acc))))))
+            begin
+            match path with
+            | [] -> (List.rev acc, None)
+            | p :: ps ->
+                let child = Vytree.find node p in
+                match child with
+                | Some c -> aux c ps (p :: acc)
+                | None ->
+                    let msg = Printf.sprintf "Path %s is incomplete" (show_path acc)
+                    in raise (Validation_error msg)
+            end
     in aux node path []
 
 let is_multi reftree path =

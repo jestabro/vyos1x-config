@@ -1,7 +1,6 @@
 module F = Filename
 
-(*type value_constraint = Regex of string | External of string * string
-option*)
+(*type value_constraint = Regex of string | External of string * string option*)
 type value_constraint =
     | Regex of string [@name "regex"]
     | External of string * string option [@name "exec"]
@@ -9,36 +8,71 @@ type value_constraint =
 
 exception Bad_validator of string
 
-let validate_value dir value_constraint value =
+let validate_value dir buf value_constraint value =
     match value_constraint with
     | Regex s ->
-        (try
-           let _ = Pcre.exec ~pat:s value in true
+      (try
+          let _ = Pcre.exec ~pat:(Printf.sprintf "^%s$" s) value in true
        with Not_found -> false)
     | External (v, c) ->
-        (* XXX: Using Unix.system is a bad idea on multiple levels,
-                especially when the input comes directly from the user...
-                We should do something about it.
-         *)
+      (* XXX: Unix.open_process_in is "shelling out", which is a bad idea on multiple levels,
+         especially when the input comes directly from the user...
+         We should do something about it.
+       *)
         let validator = F.concat dir v in
-        let arg = Option.value c ~default:"" in
-        let safe_arg = Printf.sprintf "'%s'" (Pcre.qreplace ~pat:"\"" ~templ:"\\\"" arg) in
-        let result = Unix.system (Printf.sprintf "%s %s %s" validator safe_arg value) in
+        let cmd =
+            match c with
+            | Some arg ->
+                let safe_arg = Printf.sprintf "'%s'" (Pcre.qreplace ~pat:"\"" ~templ:"\\\"" arg) in
+                Printf.sprintf "%s %s \'%s\' 2>&1" validator safe_arg value
+            | None ->
+                Printf.sprintf "%s \'%s\' 2>&1" validator value
+        in
+        let chan = Unix.open_process_in cmd in
+        let out = try CCIO.read_all chan with _ -> "" in
+        let result = Unix.close_process_in chan in
         match result with
         | Unix.WEXITED 0 -> true
-        | Unix.WEXITED 127 -> raise (Bad_validator (Printf.sprintf "Could not execute validator %s" validator))
-        | _ -> false
+        | Unix.WEXITED 127 ->
+            raise (Bad_validator (Printf.sprintf "Could not execute validator %s" validator))
+        | _ ->
+            let () = Buffer.add_string buf out in
+            false
 
 (* If no constraints given, consider it valid.
-   Otherwise consider it valid if it satisfies at least
-   one constraint *)
+   Otherwise consider it valid if it satisfies at least one constraint *)
 let validate_any validators constraints value =
-    let rec aux validators constraints value  =
+    let buf = Buffer.create 4096 in
+    let validate_exists validators constraints value =
         match constraints with
-        | [] -> false
-        | c :: cs -> if validate_value validators c value then true
-                     else aux validators cs value
+        | [] -> true
+        | _ ->
+            List.exists (fun c -> validate_value validators buf c value) constraints
     in
-    match constraints with
-    | [] -> true
-    | _ -> aux validators constraints value
+    match validate_exists validators constraints value with
+    | true ->
+        let () = Buffer.clear buf in
+        true, ""
+    | false ->
+        let out = Buffer.contents buf in
+        let () = Buffer.clear buf in
+        false, out
+
+(* If no constraints given, consider it valid.
+   Otherwise consider it valid if it satisfies all constraints *)
+let validate_all validators constraints value =
+    let buf = Buffer.create 4096 in
+    let validate_forall validators constraints value =
+        match constraints with
+        | [] -> true
+        | _ ->
+            List.for_all (fun c -> validate_value validators buf c value) constraints
+    in
+    match validate_forall validators constraints value with
+    | true ->
+        let () = Buffer.clear buf in
+        true, ""
+    | false ->
+        let out = Buffer.contents buf in
+        let () = Buffer.clear buf in
+        false, out
