@@ -101,3 +101,12 @@ let string_of_list ss =
 let json_of_list ss =
     let ss = List.map (fun x -> `String x) ss in
     Yojson.Safe.to_string (`List ss)
+
+(** Split string on whitespace, excluding single-quoted phrases,
+    as needed for parsing vyconf request path option **)
+let list_of_path p =
+    let seg = String.trim p |> String.split_on_char '\'' in
+    match seg with
+    | [h] -> Pcre.split ~pat:"\\s+" h
+    | h :: h' :: _ -> (Pcre.split ~pat:"\\s+" h) @ [h']
+    | _ -> []
