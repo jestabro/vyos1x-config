@@ -261,7 +261,7 @@ let validate_path validators_dir node path =
             begin
             match path with
             | [] ->
-                if data.valueless then (List.rev acc, None)
+                if data.valueless then ""
                 else
                 let msg =
                     Printf.sprintf "Configuration path %s requires a value" (show_path acc)
@@ -273,7 +273,7 @@ let validate_path validators_dir node path =
                          with Value_checker.Bad_validator msg -> raise (Validation_error msg)
                      in
                      match res with
-                     | true -> (List.rev acc, Some p)
+                     | true -> out
                      | false ->
                         raise (Validation_error (out ^ data.constraint_error_message))
                  else
@@ -332,7 +332,7 @@ let validate_path validators_dir node path =
                     in
                     begin
                     match res with
-                    | true -> (List.rev acc, None)
+                    | true -> out
                     | false ->
                         let msg =
                             Printf.sprintf "%s is not a valid child name for node %s" p (show_path acc)
@@ -349,7 +349,7 @@ let validate_path validators_dir node path =
         | Other ->
             begin
             match path with
-            | [] -> (List.rev acc, None)
+            | [] -> ""
             | p :: ps ->
                 let child = Vytree.find node p in
                 match child with
