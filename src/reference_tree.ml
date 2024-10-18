@@ -360,6 +360,41 @@ let validate_path validators_dir node path =
             end
     in aux node path []
 
+(* This is only to be used after the path has been validated *)
+let split_path node path =
+    let rec aux node path acc =
+        let data = Vytree.data_of_node node in
+        match data.node_type with
+        | Leaf ->
+            begin
+            match path with
+            | [] -> (List.rev acc, None)
+            | [p] -> (List.rev acc, Some p)
+            | _ -> (List.rev acc, None)
+            end
+        | Tag ->
+            begin
+            match path with
+            | p :: p' :: ps ->
+                (let child = Vytree.find node p' in
+                match child with
+                | Some c -> aux c ps (p' :: p :: acc)
+                | None -> (List.rev acc, None))
+            | [_] -> (List.rev acc, None)
+            | _ -> (List.rev acc, None)
+            end
+        | Other ->
+            begin
+            match path with
+            | [] -> (List.rev acc, None)
+            | p :: ps ->
+                let child = Vytree.find node p in
+                match child with
+                | Some c -> aux c ps (p :: acc)
+                | None -> (List.rev acc, None)
+            end
+    in aux node path []
+
 let is_multi reftree path =
     let data = Vytree.get_data reftree path in
     data.multi
