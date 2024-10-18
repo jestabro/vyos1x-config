@@ -240,6 +240,10 @@ let has_illegal_characters name =
     try Some (Pcre.get_substring (Pcre.exec ~pat:"[\\s\\{\\}\\[\\]\"\'#]" name) 0)
     with Not_found -> None
 
+let format_out l =
+    let fl = List.filter (fun s -> (String.length s) > 0) l in
+    String.concat "\n\n" fl
+
 (** Takes a list of string that represents a configuration path that may have
     node value at the end, validates it, and splits it into path and value parts.
 
@@ -275,7 +279,8 @@ let validate_path validators_dir node path =
                      match res with
                      | None -> ()
                      | Some out ->
-                        raise (Validation_error (out ^ data.constraint_error_message))
+                        let ret = format_out [out; data.constraint_error_message]
+                        in raise (Validation_error ret)
                  else
                      let msg = Printf.sprintf "Node %s cannot have a value" (show_path acc)
                      in raise (Validation_error msg)
@@ -314,7 +319,7 @@ let validate_path validators_dir node path =
                         let msg =
                             Printf.sprintf "%s is not a valid child name for node %s" p (show_path acc)
                         in
-                        let ret = Printf.sprintf "%s\n%s\n%s" out data.constraint_error_message msg
+                        let ret = format_out [out; data.constraint_error_message; msg]
                         in raise (Validation_error ret)
                     end
                 end
@@ -337,7 +342,7 @@ let validate_path validators_dir node path =
                         let msg =
                             Printf.sprintf "%s is not a valid child name for node %s" p (show_path acc)
                         in
-                        let ret = Printf.sprintf "%s\n%s\n%s" out data.constraint_error_message msg
+                        let ret = format_out [out; data.constraint_error_message; msg]
                         in raise (Validation_error ret)
                     end
                 end
