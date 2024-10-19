@@ -28,6 +28,7 @@ let validate_value dir buf value_constraint value =
             | None ->
                 Printf.sprintf "%s \'%s\' 2>&1" validator value
         in
+        let () = Unix.putenv "vyos_libexec_dir" "/usr/libexec/vyos" in
         let chan = Unix.open_process_in cmd in
         let out = try CCIO.read_all chan with _ -> "" in
         let result = Unix.close_process_in chan in
