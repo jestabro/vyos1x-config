@@ -52,11 +52,11 @@ let validate_any validators constraints value =
     match validate_exists validators constraints value with
     | true ->
         let () = Buffer.clear buf in
-        true, ""
+        None
     | false ->
         let out = Buffer.contents buf in
         let () = Buffer.clear buf in
-        false, out
+        Some out
 
 (* If no constraints given, consider it valid.
    Otherwise consider it valid if it satisfies all constraints *)
@@ -71,8 +71,8 @@ let validate_all validators constraints value =
     match validate_forall validators constraints value with
     | true ->
         let () = Buffer.clear buf in
-        true, ""
+        None
     | false ->
         let out = Buffer.contents buf in
         let () = Buffer.clear buf in
-        false, out
+        Some out

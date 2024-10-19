@@ -40,7 +40,7 @@ val load_from_xml : t -> string -> t
 
 val find_xml_child : string -> Xml_light_types.xml -> Xml_light_types.xml option
 
-val validate_path : string -> t -> string list -> string
+val validate_path : string -> t -> string list -> unit
 
 val split_path : t -> string list -> string list * string option
 
