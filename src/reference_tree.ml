@@ -279,7 +279,8 @@ let validate_path validators_dir node path =
                      match res with
                      | None -> ()
                      | Some out ->
-                        raise (Validation_error (out ^ data.constraint_error_message))
+                        let ret = format_out [out; data.constraint_error_message]
+                        in raise (Validation_error ret)
                  else
                      let msg = Printf.sprintf "Node %s cannot have a value" (show_path acc)
                      in raise (Validation_error msg)
