@@ -23,7 +23,7 @@ let validate_value dir buf value_constraint value =
         let cmd =
             match c with
             | Some arg ->
-                let safe_arg = Printf.sprintf "'%s'" (Pcre.qreplace ~pat:"\"" ~templ:"\\\"" arg) in
+                let safe_arg = Printf.sprintf "%s" (Pcre.qreplace ~pat:"\"" ~templ:"\\\"" arg) in
                 Printf.sprintf "%s %s \'%s\' 2>&1" validator safe_arg value
             | None ->
                 Printf.sprintf "%s \'%s\' 2>&1" validator value
