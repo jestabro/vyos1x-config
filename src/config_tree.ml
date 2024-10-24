@@ -287,6 +287,14 @@ let render_commands ?(op=Set) node path =
 
 let render_config ?(ord_val=false) = Renderer.render_config ~ord_val:ord_val
 
+let render_at_level node path =
+    let node =
+        match path with
+        | [] -> node
+        | _ -> Vytree.get node path
+    in
+    render_config node
+
 let render_json = JSONRenderer.render_json
 
 let render_json_ast c = to_yojson c |> Yojson.Safe.to_string
