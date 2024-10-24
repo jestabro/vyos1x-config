@@ -9,6 +9,6 @@ exception Bad_validator of string
 
 val validate_value : string -> Buffer.t -> value_constraint -> string -> bool
 
-val validate_any : string -> value_constraint list -> string -> bool * string
+val validate_any : string -> value_constraint list -> string -> string option
 
-val validate_all : string -> value_constraint list -> string -> bool * string
+val validate_all : string -> value_constraint list -> string -> string option
