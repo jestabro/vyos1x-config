@@ -2,6 +2,8 @@
 exception Load_error of string
 exception Write_error of string
 
+module I = Internal.Make(Reference_tree)
+
 let load_interface_definitions dir =
     let open Reference_tree in
     let dir_paths = FileUtil.ls dir in
@@ -20,7 +22,7 @@ let load_interface_definitions dir =
         | Error msg -> Error msg end
     with Bad_interface_definition msg -> Error msg
 
-let reference_tree_to_json from_dir to_file =
+let reference_tree_to_json ?(internal_cache="") from_dir to_file =
     let ref_tree_result =
         load_interface_definitions from_dir
     in
@@ -36,4 +38,7 @@ let reference_tree_to_json from_dir to_file =
         with Sys_error msg -> raise (Write_error msg)
     in
     Printf.fprintf oc "%s" out;
-    close_out oc
+    close_out oc;
+    match internal_cache with
+    | "" -> ()
+    | _ -> I.write_internal ref_tree internal_cache
