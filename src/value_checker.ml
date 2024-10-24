@@ -47,7 +47,9 @@ let validate_any validators constraints value =
         match constraints with
         | [] -> true
         | _ ->
-            List.exists (fun c -> validate_value validators buf c value) constraints
+            try
+                List.exists (fun c -> validate_value validators buf c value) constraints
+            with Bad_validator e -> let () = Buffer.add_string buf e in false
     in
     match validate_exists validators constraints value with
     | true ->
@@ -66,7 +68,9 @@ let validate_all validators constraints value =
         match constraints with
         | [] -> true
         | _ ->
-            List.for_all (fun c -> validate_value validators buf c value) constraints
+            try
+                List.for_all (fun c -> validate_value validators buf c value) constraints
+            with Bad_validator e -> let () = Buffer.add_string buf e in false
     in
     match validate_forall validators constraints value with
     | true ->
