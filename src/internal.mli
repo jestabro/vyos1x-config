@@ -10,6 +10,7 @@ module type FI = functor (M : T) ->
     sig
       val write_internal : M.t -> string -> unit
       val read_internal : string -> M.t
+      val replace_internal : string -> string -> unit
     end
 
 module Make : FI
