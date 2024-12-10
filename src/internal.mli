@@ -1,3 +1,6 @@
+exception Read_error of string
+exception Write_error of string
+
 module type T =
     sig
         type t
