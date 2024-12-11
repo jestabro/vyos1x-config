@@ -58,6 +58,8 @@ val is_valueless : t -> string list -> bool
 
 val get_owner : t -> string list -> string option
 
+val get_priority : t -> string list -> string option
+
 val get_help_string : t -> string list -> string
 
 val get_value_help : t -> string list -> (string * string) list
