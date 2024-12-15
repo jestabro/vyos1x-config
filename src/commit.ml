@@ -36,6 +36,11 @@ let drop_last_n l n =
         | _ -> if k <= 0 then l else aux (k - 1) (drop_last l)
     in aux n l
 
+let drop_first l =
+    match l with
+    | [] -> []
+    | hd :: tl -> tl
+
 let get_last l =
     let rec aux l =
         match l with
@@ -69,7 +74,7 @@ module CI = struct
 end
 module CS = Set.Make(CI)
 
-let extract_owner_arg s p =
+let owner_args_from_data p s =
     match s with
     | None -> None, None
     | Some o ->
@@ -88,42 +93,45 @@ type node_acc = string list * CS.t
 let add_tag_instance cd cs tv =
     CS.add { cd with tag_value = Some tv; } cs
 
+(* Check if config path is a tag value *)
 let is_tag_value ct path =
-    CT.is_tag ct (drop_last path)
+    match path with
+    | [] | [_] -> false
+    | _ -> CT.is_tag ct (drop_last path)
 
-let get_commit_data rt (path, cs') ct =
-    if (Vytree.name_of_node ct) = "" then
+let is_empty l =
+    List.compare_length_with l 0 = 0
+
+let get_commit_data rt ct (path, cs') t =
+    if is_empty path then
         (path, cs')
     else
-(*    if is_tag_value ct path then
+    if (Vytree.name_of_node t) = "" then
         (path, cs')
-    else*)
-    let last =
-        match get_last path with
-        | None -> ""
-        | Some v -> v
-    in
-    let () = Printf.printf "node %s: path last elt %s" (Vytree.name_of_node ct) last
-    in
-    let rt_path = RT.refpath rt path in
-    let priority = RT.get_priority rt rt_path in
-    let prio =
-        match priority with
+    else
+    let rpath = List.rev path in
+    if is_tag_value ct rpath then
+        (path, cs')
+    else
+    let rt_path = RT.refpath rt rpath in
+    let priority =
+        match RT.get_priority rt rt_path with
         | None -> 0
         | Some s -> int_of_string s
     in
-    let owner = RT.get_owner rt rt_path in
-    let (own, arg) = extract_owner_arg owner path in
+    let owner = RT.get_owner rt rt_path
+    in
+    let (own, arg) = owner_args_from_data rpath owner in
     let c_data = { default_commit_data with
                    script = own;
-                   priority = prio;
+                   priority = priority;
                    arg_value = arg;
                    path = path; }
     in
     let tag_values =
         match RT.is_tag rt rt_path with
         | false -> []
-        | true -> Vytree.list_children ct
+        | true -> Vytree.list_children t
     in
     let cs =
         match tag_values with
@@ -140,13 +148,17 @@ match name with
 *)
 
 let rec fold_tree_depth f (p', a) t =
-    let p = p' @ [Vytree.name_of_node t] in
+    let p =
+        match Vytree.name_of_node t with
+        | "" -> p'
+        | name -> name :: p'
+    in
     let children = Vytree.children_of_node t in
     match children with
-    | [] -> (drop_last p), snd (f (p, a) t)
+    | [] -> (drop_first p), snd (f (p, a) t)
     | c -> let res =
         List.fold_left (fold_tree_depth f) (f (p, a) t) c in
-        (drop_last p), snd res
+        (drop_first p), snd res
 
 let rec fold_tree_breadth f a t =
 (*    let a' =
