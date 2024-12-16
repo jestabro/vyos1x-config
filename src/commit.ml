@@ -8,7 +8,7 @@ type commit_data = {
     tag_value: string option;
     arg_value: string option;
     path: string list;
-}
+} [@@deriving show]
 
 
 let default_commit_data = {
@@ -160,6 +160,16 @@ let rec fold_tree_depth f (p', a) t =
     | c -> let res =
         List.fold_left (fold_tree_depth f) (f (p, a) t) c in
         (drop_first p), snd res
+
+let test_commit_data rt ct =
+    let cs =
+        fold_tree_depth (get_commit_data rt ct) ([],CS.empty) ct
+    in
+    let sprint_commit_data acc s =
+        acc ^ "\n" ^ show_commit_data s
+    in
+    let out = List.fold_left sprint_commit_data "" (CS.elements (snd cs))
+    in print_endline out
 
 let rec fold_tree_breadth f a t =
 (*    let a' =
