@@ -119,8 +119,9 @@ let get_commit_data rt ct (path, cs') t =
         | None -> 0
         | Some s -> int_of_string s
     in
-    let owner = RT.get_owner rt rt_path
-    in
+    let owner = RT.get_owner rt rt_path in
+    if  owner = None then (path, cs')
+    else
     let (own, arg) = owner_args_from_data rpath owner in
     let c_data = { default_commit_data with
                    script = own;
