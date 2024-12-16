@@ -207,3 +207,16 @@ let move node path position =
     let child = get node path in
     let node = delete node path in
     insert ~position:position ~children:child.children node path child.data
+
+let rec fold_tree_with_path f (p', a) t =
+    let p =
+        match name_of_node t with
+        | "" -> p'
+        | name -> name :: p'
+    in
+    let children = children_of_node t in
+    match children with
+    | [] -> (Util.drop_first p), snd (f (p, a) t)
+    | c -> let res =
+        List.fold_left (fold_tree_with_path f) (f (p, a) t) c in
+        (Util.drop_first p), snd res
