@@ -208,6 +208,14 @@ let move node path position =
     let node = delete node path in
     insert ~position:position ~children:child.children node path child.data
 
+let is_terminal_path node path =
+    try
+        let n = get node path in
+        match (children_of_node n) with
+        | [] -> true
+        | _ -> false
+    with Nonexistent_path -> false
+
 let rec fold_tree_with_path f (p', a) t =
     let p =
         match name_of_node t with
