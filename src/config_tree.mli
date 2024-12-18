@@ -19,6 +19,8 @@ val default_data : config_node_data
 
 val default : t
 
+include module type of Vytree_common
+
 val make : string -> t
 
 val create_node : t -> string list -> t

@@ -62,6 +62,8 @@ let default_data = {
 
 let default = Vytree.make default_data ""
 
+include Vytree_common
+
 (* Loading from XML *)
 
 let node_type_of_string s =

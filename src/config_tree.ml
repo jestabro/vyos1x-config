@@ -6,6 +6,8 @@ exception Node_has_no_value
 exception No_such_value
 exception Useless_set
 
+include Vytree_common
+
 type config_node_data = {
     values: string list;
     comment: string option;
