@@ -21,6 +21,8 @@ val default : t
 
 val make : string -> t
 
+val compare: t -> t -> int
+
 val create_node : t -> string list -> t
 
 val set : t -> string list -> string option -> value_behaviour -> t

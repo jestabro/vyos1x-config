@@ -62,6 +62,12 @@ let default_data = {
 
 let default = Vytree.make default_data ""
 
+let compare a b = Vytree.compare a b
+
+let name_of n = Vytree.name_of_node n
+let data_of n = Vytree.data_of_node n
+let children_of n = Vytree.children_of_node n
+
 (* Loading from XML *)
 
 let node_type_of_string s =

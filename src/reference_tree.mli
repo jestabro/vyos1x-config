@@ -36,6 +36,8 @@ val default_data : ref_node_data
 
 val default : t
 
+val compare: t -> t -> int
+
 val load_from_xml : t -> string -> t
 
 val find_xml_child : string -> Xml_light_types.xml -> Xml_light_types.xml option

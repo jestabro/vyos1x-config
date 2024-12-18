@@ -4,6 +4,10 @@ module type T =
         val to_yojson : t -> Yojson.Safe.t
         val of_yojson : Yojson.Safe.t -> t Ppx_deriving_yojson_runtime.error_or
         val default : t
+        val compare : t -> t -> int
+        val name_of : t -> string
+        val data_of : t -> string
+        val children_of : t -> t list
     end
 
 module type FI = functor (M: T) ->
@@ -26,4 +30,32 @@ module Make : FI = functor (M: T) -> struct
         let ct_res = M.of_yojson yt in
         let ct = Result.value ct_res ~default:M.default in
         close_in ic; ct
+
+    module ChildrenS = Set.Make(struct
+        type t = M.t
+        let compare = M.compare
+    end)
+
+    let union_of_children n m =
+        let set_n = ChildrenS.of_list (M.children_of n) in
+        let set_m = ChildrenS.of_list (M.children_of m) in
+        ChildrenS.elements (ChildrenS.union set_n set_m)
+
+    let rec tree_union f s t =
+        let child_of_union s t c =
+            let s_c = Vytree.find s (M.name_of c) in
+            let t_c = Vytree.find t (M.name_of c) in
+            match s_c, t_c with
+            | Some c, None ->
+                Vytree.insert_immediate ~position:Lexical t (M.name_of c) (M.data_of c) (M.children_of c)
+            | None, Some _ -> t
+            | Some u, Some v ->
+                    if M.data_of u <> M.data_of v then
+                        let data = f u v in
+                        Vytree.replace t (Vytree.make data (M.name_of v))
+                    else
+                        Vytree.replace t (tree_union u v)
+            | None, None -> raise Nonexistent_child
+        in
+        List.fold_left (fun x c -> child_of_union s x c) t (union_of_children s t)
 end

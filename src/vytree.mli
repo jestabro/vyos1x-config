@@ -14,6 +14,8 @@ val name_of_node : 'a t -> string
 val data_of_node : 'a t -> 'a
 val children_of_node : 'a t -> 'a t list
 
+val compare : 'a t -> 'a t -> int
+
 val find : 'a t -> string -> 'a t option
 val find_or_fail : 'a t -> string -> 'a t
 

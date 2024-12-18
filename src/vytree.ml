@@ -19,6 +19,8 @@ let name_of_node node = node.name
 let data_of_node node = node.data
 let children_of_node node = node.children
 
+let compare a b = Util.lexical_numeric_compare (name_of_node a) (name_of_node b)
+
 let insert_immediate ?(position=Default) node name data children =
     let new_node = make_full data name children in
     let children' =
