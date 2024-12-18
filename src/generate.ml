@@ -1,6 +1,7 @@
 (* Load interface definitions from a directory into a reference tree *)
 exception Load_error of string
 exception Write_error of string
+exception Tree_collision of string
 
 module I = Internal.Make(Reference_tree)
 
@@ -42,3 +43,9 @@ let reference_tree_to_json ?(internal_cache="") from_dir to_file =
     match internal_cache with
     | "" -> ()
     | _ -> I.write_internal ref_tree internal_cache
+
+let merge_reference_trees dir =
+    let file_list = Sys.readdir dir in
+    let ref_trees = List.map I.read_internal (Array.to_list file_list) in
+    let f node = raise (Tree_collision (Vytree.name_of_node node)) in
+    List.fold_left (Vytree.tree_union f) Reference_tree.default ref_trees

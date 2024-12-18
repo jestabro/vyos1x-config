@@ -10,6 +10,7 @@ exception Empty_path
 exception Duplicate_child
 exception Nonexistent_path
 exception Insert_error of string
+exception Incompatible_trees of string * string
 
 let make data name = { name = name; data = data; children = [] }
 
