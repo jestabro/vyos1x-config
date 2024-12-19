@@ -1,8 +1,14 @@
 
-type tree_data = Config of Config_tree.config_node_data | Ref of Reference_tree.ref_node_data
-
+type tree_data =  Config of Config_tree.config_node_data | Ref of Reference_tree.ref_node_data
+(*
+type _ tree_data =
+    | Config : Config_tree.config_node_data -> Config_tree.config_node_data tree_data
+    | Ref : Reference_tree.ref_node_data -> Reference_tree.ref_node_data tree_data
+*)
 exception Incompatible_union
 exception Nonexistent_child
+
+let ref_default = Vytree.make (Ref Reference_tree.default_data) ""
 
 module TreeOrd = struct
     type t = tree_data Vytree.t
@@ -32,7 +38,7 @@ let rec tree_union f s t =
                     let data = f u v in
                     Vytree.replace t (Vytree.make data (Vytree.name_of_node v))
                 else
-                    Vytree.replace t (tree_union u v)
+                    Vytree.replace t (tree_union f u v)
         | None, None -> raise Nonexistent_child
     in
     List.fold_left (fun x c -> child_of_union s x c) t (union_of_children s t)
