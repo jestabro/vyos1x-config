@@ -1,3 +1,6 @@
+exception Incompatible_union
+exception Nonexistent_child
+
 module type T =
     sig
         type t
@@ -6,14 +9,18 @@ module type T =
         val default : t
         val compare : t -> t -> int
         val name_of : t -> string
-        val data_of : t -> string
+        val data_of : t -> 'a
         val children_of : t -> t list
+        val insert_child : t -> t -> t
+        val replace_child : t -> t -> t
+        val replace_data : t -> 'a -> t
     end
 
 module type FI = functor (M: T) ->
     sig
         val write_internal : M.t -> string -> unit
         val read_internal : string -> M.t
+        val tree_union : (M.t -> M.t -> 'a) -> M.t -> M.t -> M.t
     end
 
 module Make : FI = functor (M: T) -> struct
@@ -42,19 +49,27 @@ module Make : FI = functor (M: T) -> struct
         ChildrenS.elements (ChildrenS.union set_n set_m)
 
     let rec tree_union f s t =
+        if (M.name_of s) <> (M.name_of t) then
+            raise Incompatible_union
+        else
         let child_of_union s t c =
-            let s_c = Vytree.find s (M.name_of c) in
-            let t_c = Vytree.find t (M.name_of c) in
+(*            let s_c = Vytree.find s (M.name_of c) in
+            let t_c = Vytree.find t (M.name_of c) in*)
+            let s_c = M.find_child s c in
+            let t_c = M.find_child t c in
             match s_c, t_c with
             | Some c, None ->
-                Vytree.insert_immediate ~position:Lexical t (M.name_of c) (M.data_of c) (M.children_of c)
+                insert_child t c
+(*                Vytree.insert ~position:Lexical ~children:(M.children_of c) t [(M.name_of c)] (M.data_of c)*)
             | None, Some _ -> t
             | Some u, Some v ->
                     if M.data_of u <> M.data_of v then
                         let data = f u v in
+                        M.replace_data t data
                         Vytree.replace t (Vytree.make data (M.name_of v))
                     else
-                        Vytree.replace t (tree_union u v)
+                        M.replace_child t (tree_union u v)
+(*                        Vytree.replace t (tree_union u v)*)
             | None, None -> raise Nonexistent_child
         in
         List.fold_left (fun x c -> child_of_union s x c) t (union_of_children s t)
