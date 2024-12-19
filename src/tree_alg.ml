@@ -1,5 +1,12 @@
+(*type Config of Config_tree.config_node_data Vytree.t*)
 
 type tree_data =  Config of Config_tree.config_node_data | Ref of Reference_tree.ref_node_data
+(*
+type tree_type = [
+    | `Config of Config_tree.config_node_data Vytree.t
+    | `Ref of Reference_tree.ref_node_data Vytree.t
+]
+*)
 (*
 type _ tree_data =
     | Config : Config_tree.config_node_data -> Config_tree.config_node_data tree_data
@@ -8,8 +15,11 @@ type _ tree_data =
 exception Incompatible_union
 exception Nonexistent_child
 
-let ref_default = Vytree.make (Ref Reference_tree.default_data) ""
-
+(*let ref_default = Vytree.make (Ref Reference_tree.default_data) ""*)
+module type TreeOrd = sig
+    type t
+    val compare : t -> t -> int
+end
 module TreeOrd = struct
     type t = tree_data Vytree.t
     let compare a b =

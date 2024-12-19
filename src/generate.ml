@@ -46,6 +46,7 @@ let reference_tree_to_json ?(internal_cache="") from_dir to_file =
 
 let merge_reference_trees dir =
     let file_list = Sys.readdir dir in
-    let ref_trees = List.map I.read_internal (Array.to_list file_list) in
+    let ref_trees' = List.map I.read_internal (Array.to_list file_list) in
+(*    let ref_trees = List.map (fun x -> Ref x) ref_trees' in *)
     let f node = raise (Tree_collision (Vytree.name_of_node node)) in
-    List.fold_left (Tree_alg.tree_union f) Reference_tree.default ref_trees
+    List.fold_left (Tree_alg.tree_union f) (Reference_tree.default) ref_trees
