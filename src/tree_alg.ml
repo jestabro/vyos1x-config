@@ -1,27 +1,17 @@
-(*type Config of Config_tree.config_node_data Vytree.t*)
-
-type tree_data =  Config of Config_tree.config_node_data | Ref of Reference_tree.ref_node_data
-(*
-type tree_type = [
-    | `Config of Config_tree.config_node_data Vytree.t
-    | `Ref of Reference_tree.ref_node_data Vytree.t
-]
-*)
-(*
-type _ tree_data =
-    | Config : Config_tree.config_node_data -> Config_tree.config_node_data tree_data
-    | Ref : Reference_tree.ref_node_data -> Reference_tree.ref_node_data tree_data
-*)
-exception Incompatible_union
 exception Nonexistent_child
 
-(*let ref_default = Vytree.make (Ref Reference_tree.default_data) ""*)
+(*type treetype = Config of Config_tree.t | Reference of Reference_tree.t*)
+type treedata = [
+    | `Config of Config_tree.config_node_data
+    | `Ref of Reference_tree.ref_node_data
+]
+
 module type TreeOrd = sig
     type t
     val compare : t -> t -> int
 end
 module TreeOrd = struct
-    type t = tree_data Vytree.t
+    type t = treedata Vytree.t
     let compare a b =
         Util.lexical_numeric_compare (Vytree.name_of_node a) (Vytree.name_of_node b)
 end
@@ -33,9 +23,6 @@ let union_of_children n m =
     ChildrenS.elements (ChildrenS.union set_n set_m)
 
 let rec tree_union f s t =
-        if (Vytree.name_of_node s) <> (Vytree.name_of_node t) then
-            raise Incompatible_union
-        else
     let child_of_union s t c =
         let s_c = Vytree.find s (Vytree.name_of_node c) in
         let t_c = Vytree.find t (Vytree.name_of_node c) in
