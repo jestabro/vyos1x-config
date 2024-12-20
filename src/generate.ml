@@ -42,3 +42,14 @@ let reference_tree_to_json ?(internal_cache="") from_dir to_file =
     match internal_cache with
     | "" -> ()
     | _ -> I.write_internal ref_tree internal_cache
+
+let merge_reference_trees dir primary result =
+    let file_list = Sys.readdir dir in
+    let ref_trees' = List.map I.read_internal (Array.to_list file_list) in
+    let ref_trees = List.filter (fun x -> x <> primary || x <> result) ref_trees' in
+    match ref_trees with
+    | [] ->
+        I.write_internal primary (FilePath.concat dir result)
+    | _ ->
+        let res = List.fold_left (fun p r -> Reference_tree.tree_union r p) primary ref_trees in
+        I.write_internal res (FilePath.concat dir result)

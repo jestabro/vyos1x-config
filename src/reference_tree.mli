@@ -66,4 +66,6 @@ val get_completion_data : t -> string list -> (node_type * bool * string) list
 
 val refpath : t -> string list -> string list
 
+val ref_tree_union : t -> t -> t
+
 val render_json : t -> string
