@@ -15,7 +15,7 @@ module type T =
 
 module type TA = functor (M: T) ->
     sig
-        val tree_union : (M.t -> M.t -> M.t) -> M.t -> M.t -> M.t
+        val tree_union : M.t -> M.t -> (M.t -> M.t -> M.t) -> M.t
     end
 
 module Make : TA = functor (M: T) -> struct
@@ -31,7 +31,7 @@ module Make : TA = functor (M: T) -> struct
         let set_m = ChildrenS.of_list (M.children_of m) in
         ChildrenS.elements (ChildrenS.union set_n set_m)
 
-    let rec tree_union f s t =
+    let rec tree_union s t f =
         if (M.name_of s) <> (M.name_of t) then
             raise Incompatible_union
         else
@@ -45,9 +45,9 @@ module Make : TA = functor (M: T) -> struct
             | None, Some _ -> t
             | Some u, Some v ->
                     if (u ^~ v) then
-                        M.replace_child t (f u v)
+                        M.replace_child t (tree_union u (f u v) f)
                     else
-                        M.replace_child t (tree_union f u v)
+                        M.replace_child t (tree_union u v f)
             | None, None -> raise Nonexistent_child
         in
         List.fold_left (fun x c -> child_of_union s x c) t (union_of_children s t)

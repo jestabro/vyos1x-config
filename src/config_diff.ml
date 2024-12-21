@@ -440,4 +440,4 @@ let tree_union s t =
         let data = {(data_of v) with Config_tree.values = values} in
         Vytree.make_full data (name_of v) (children_of v)
     in
-    T.tree_union f s t
+    T.tree_union s t f

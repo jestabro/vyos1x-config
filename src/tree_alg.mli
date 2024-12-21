@@ -12,7 +12,7 @@ module type T =
 
 module type TA = functor (M : T) ->
     sig
-      val tree_union : (M.t -> M.t -> M.t) -> M.t -> M.t -> M.t
+      val tree_union : M.t -> M.t -> (M.t -> M.t -> M.t) -> M.t
     end
 
 module Make : TA
