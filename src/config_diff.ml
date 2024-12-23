@@ -432,7 +432,7 @@ let union_of_values (n : Config_tree.t) (m : Config_tree.t) =
     let set_m = ValueS.of_list (data_of m).values in
     ValueS.elements (ValueS.union set_n set_m)
 
-module T = Tree_alg.Make(Config_tree)
+(*module T = Tree_alg.Make(Config_tree)*)
 
 let tree_union s t =
     let f u v =
@@ -440,4 +440,4 @@ let tree_union s t =
         let data = {(data_of v) with Config_tree.values = values} in
         Vytree.make_full data (name_of v) (children_of v)
     in
-    T.tree_union s t f
+    Alg.ConfigAlg.tree_union s t f
