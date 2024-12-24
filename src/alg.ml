@@ -5,17 +5,17 @@ module type Data = sig
     type t
 end
 
-module type Dtree = sig
+module type Tree = sig
     module D: Data
     type t = D.t Vytree.t
 end
 
-module Dtree_impl (D: Data): Dtree with module D = D = struct
+module Tree_impl (D: Data): Tree with module D = D = struct
     module D = D
     type t = D.t Vytree.t
 end
 
-module Alg (D: Data) (T: Dtree with module D = D) = struct
+module Alg (D: Data) (T: Tree with module D = D) = struct
     module TreeOrd = struct
         type t = T.t
         let compare a b =
@@ -64,5 +64,5 @@ module RefData: Data with type t = Reference_tree.ref_node_data = struct
     type t = Reference_tree.ref_node_data
 end
 
-module ConfigAlg = Alg(ConfigData)(Dtree_impl(ConfigData))
-module RefAlg = Alg(RefData)(Dtree_impl(RefData))
+module ConfigAlg = Alg(ConfigData)(Tree_impl(ConfigData))
+module RefAlg = Alg(RefData)(Tree_impl(RefData))
