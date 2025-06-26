@@ -17,3 +17,11 @@ module type FI = functor (M : T) ->
     end
 
 module Make : FI
+
+val read_config_tree : string -> Config_tree.t
+
+val write_config_tree : Config_tree.t -> string -> unit
+
+val read_reference_tree : string -> Reference_tree.t
+
+val write_reference_tree : Reference_tree.t -> string -> unit

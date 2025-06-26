@@ -64,3 +64,13 @@ module Make : FI = functor (M: T) -> struct
             FileUtil.mv ~force:Force tmp dst
         with _ -> raise (Write_error "replace error")
 end
+
+module CI = Make(Config_tree)
+
+let read_config_tree = CI.read_internal
+let write_config_tree = CI.write_internal
+
+module RI = Make(Reference_tree)
+
+let read_reference_tree = RI.read_internal
+let write_reference_tree = RI.write_internal
