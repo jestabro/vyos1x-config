@@ -42,7 +42,9 @@ let add_value node path value =
   match (Vylist.find (fun x -> x = value) values) with
   | Some _ -> raise Duplicate_value
   | None ->
-    let values = values @ [value] in
+    let values =
+        Vylist.insert_compare (fun x y -> Util.lexical_numeric_compare x y) value values
+    in
     Vytree.update node path ({data with values=values; leaf=true})
 
 let delete_value node path value =
