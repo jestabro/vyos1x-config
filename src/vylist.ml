@@ -16,6 +16,11 @@ let rec replace p x xs =
     | y :: ys -> if (p y) then x :: ys
                  else y :: (replace p x ys)
 
+let replace_or_cons p x xs =
+    try
+        replace p x xs
+    with Not_found -> (x :: xs)
+
 let rec insert_before p x xs =
     match xs with
     | [] -> raise Not_found
