@@ -506,19 +506,23 @@ let config_diff (rt : Reference_tree.t) ?recurse:_ (path : string list) (Diff_sh
         [Vytree.Empty_path] checked at only point possible (Unchanged)
         [Vytree.Nonexistent_path] function diff never calls diff_func on nonexistent path
      *)
+    let diff_str = res.config_diff
+    in
     match m with
     | Added ->
         let rendered =
             Config_tree.render_node
             4 (List.length path - 1) ((Vytree.get[@alert "-exn"]) res.right path)
         in
-        Diff_show {res with config_diff = annotate_rendered m rendered; }
+        let rev_diff = diff_str ^ annotate_rendered m rendered in
+        Diff_show {res with config_diff = rev_diff; }
     | Subtracted ->
         let rendered =
             Config_tree.render_node
             4 (List.length path - 1) ((Vytree.get[@alert "-exn"]) res.left path)
         in
-        Diff_show {res with config_diff = annotate_rendered m rendered; }
+        let rev_diff = diff_str ^ annotate_rendered m rendered in
+        Diff_show {res with config_diff = rev_diff; }
     | Unchanged ->
         let node =
             match path with
@@ -529,7 +533,8 @@ let config_diff (rt : Reference_tree.t) ?recurse:_ (path : string list) (Diff_sh
             Config_tree.render_node
             4 (List.length path - 1) node
         in
-        Diff_show {res with config_diff = annotate_rendered m rendered; }
+        let rev_diff = diff_str ^ annotate_rendered m rendered in
+        Diff_show {res with config_diff = rev_diff; }
     | Updated v ->
             let refp = (Reference_tree.refpath[@alert "-exn"]) rt path in
             let multi = (Reference_tree.is_multi[@alert "-exn"]) rt refp in
@@ -566,8 +571,9 @@ let config_diff (rt : Reference_tree.t) ?recurse:_ (path : string list) (Diff_sh
                 Config_tree.render_values indent_str name inter_vals
             in
             let inter_diff = annotate_rendered Unchanged inter_rendered in
-            let values_diff = sub_diff ^ inter_diff ^ add_diff in
-            Diff_show {res with config_diff = values_diff}
+            let value_diff = sub_diff ^ inter_diff ^ add_diff in
+            let rev_diff = diff_str ^ value_diff in
+            Diff_show {res with config_diff = rev_diff}
 
 (* call recursive diff on config_trees with config_diff as the diff_func *)
 let diff_show rt path left right =
@@ -583,8 +589,8 @@ let diff_show rt path left right =
             (Config_tree.get_subtree left path, Config_tree.get_subtree right path)
             else (left, right)
         in
-        let trees = make_diff_show left right in
-        let d = diff [] (config_diff rt) trees (Option.some left, Option.some right)
+        let config_show = make_diff_show left right in
+        let d = diff [] (config_diff rt) config_show (Option.some left, Option.some right)
         in
         let diff_show_result = eval_diff_result d in
         diff_show_result.config_diff
