@@ -501,7 +501,7 @@ let annotate_rendered change rendered =
     let marked = List.map (fun x -> mark ^ x) lst in
     String.concat "\n" marked
 
-let config_diff (rt : Reference_tree.t) ?recurse:_ (path : string list) (Diff_show res) (m : change) =
+let config_diff (_rt : Reference_tree.t) ?recurse:_ (path : string list) (Diff_show res) (m : change) =
     (* alert exn Vytree.get, Reference_tree.refpath, Config_tree.get_values, Reference_tree.is_multi:
         [Vytree.Empty_path] checked at only point possible (Unchanged)
         [Vytree.Nonexistent_path] function diff never calls diff_func on nonexistent path
@@ -535,7 +535,9 @@ let config_diff (rt : Reference_tree.t) ?recurse:_ (path : string list) (Diff_sh
         in
         let rev_diff = diff_str ^ annotate_rendered m rendered in
         Diff_show {res with config_diff = rev_diff; }
-    | Updated v ->
+    | Updated _ ->
+        Diff_show (res)
+        (*
             let refp = (Reference_tree.refpath[@alert "-exn"]) rt path in
             let multi = (Reference_tree.is_multi[@alert "-exn"]) rt refp in
         let indent_str =
@@ -574,6 +576,7 @@ let config_diff (rt : Reference_tree.t) ?recurse:_ (path : string list) (Diff_sh
             let value_diff = sub_diff ^ inter_diff ^ add_diff in
             let rev_diff = diff_str ^ value_diff in
             Diff_show {res with config_diff = rev_diff}
+         *)
 
 (* call recursive diff on config_trees with config_diff as the diff_func *)
 let diff_show rt path left right =
