@@ -498,10 +498,10 @@ let annotate_rendered change rendered =
         | Updated _ -> ">"
     in
     let lst = String.split_on_char '\n' rendered in
-    let marked = List.map (fun x -> mark ^ x) lst in
+    let marked = List.map (fun x -> match x with "" -> x | _ -> mark ^ x) lst in
     String.concat "\n" marked
 
-let config_diff (_rt : Reference_tree.t) ?recurse:_ (path : string list) (Diff_show res) (m : change) =
+let config_diff (_rt : Reference_tree.t) ?(recurse=true) (path : string list) (Diff_show res) (m : change) =
     (* alert exn Vytree.get, Reference_tree.refpath, Config_tree.get_values, Reference_tree.is_multi:
         [Vytree.Empty_path] checked at only point possible (Unchanged)
         [Vytree.Nonexistent_path] function diff never calls diff_func on nonexistent path
@@ -511,6 +511,8 @@ let config_diff (_rt : Reference_tree.t) ?recurse:_ (path : string list) (Diff_s
     match m with
     | Added ->
         let rendered =
+(*            Config_tree.render_config ((Vytree.get[@alert "-exn"])
+              res.right path) *)
             Config_tree.render_node
             4 (List.length path - 1) ((Vytree.get[@alert "-exn"]) res.right path)
         in
@@ -518,23 +520,34 @@ let config_diff (_rt : Reference_tree.t) ?recurse:_ (path : string list) (Diff_s
         Diff_show {res with config_diff = rev_diff; }
     | Subtracted ->
         let rendered =
+(*            Config_tree.render_config ((Vytree.get[@alert "-exn"])
+              res.left path) *)
             Config_tree.render_node
             4 (List.length path - 1) ((Vytree.get[@alert "-exn"]) res.left path)
         in
         let rev_diff = diff_str ^ annotate_rendered m rendered in
         Diff_show {res with config_diff = rev_diff; }
     | Unchanged ->
-        let node =
+        begin
+        match recurse with
+        | false ->
+            Diff_show (res)
+        | true ->
             match path with
-            | [] -> res.left
-            | _ -> ((Vytree.get[@alert "-exn"]) res.left path)
-        in
-        let rendered =
-            Config_tree.render_node
-            4 (List.length path - 1) node
-        in
-        let rev_diff = diff_str ^ annotate_rendered m rendered in
-        Diff_show {res with config_diff = rev_diff; }
+            | [] ->
+                let rendered =
+                    Config_tree.render_config res.left
+                in
+                let rev_diff = diff_str ^ annotate_rendered m rendered in
+                Diff_show {res with config_diff = rev_diff; }
+            | _ ->
+                let rendered =
+                    Config_tree.render_node
+                    4 (List.length path - 1) ((Vytree.get[@alert "-exn"]) res.left path)
+                in
+                let rev_diff = diff_str ^ annotate_rendered m rendered in
+                Diff_show {res with config_diff = rev_diff; }
+        end
     | Updated _ ->
         Diff_show (res)
         (*
