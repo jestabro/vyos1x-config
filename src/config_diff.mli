@@ -22,6 +22,9 @@ end
 module Diff_show : sig
     type t = { left: Config_tree.t;
                right: Config_tree.t;
+               head: string;
+               foot: string;
+               last_level: int;
                config_diff: string;
              }
 end

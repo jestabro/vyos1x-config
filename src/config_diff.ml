@@ -26,6 +26,9 @@ end
 module Diff_show = struct
     type t = { left: Config_tree.t;
                right: Config_tree.t;
+               head: string;
+               foot: string;
+               last_level: int;
                config_diff: string;
              }
 end
@@ -56,6 +59,8 @@ let make_diff_compare l r = Diff_compare { left = l; right = r;
                            }
 
 let make_diff_show l r = Diff_show { left = l; right = r;
+                                head = ""; foot = "";
+                                last_level = 0;
                                 config_diff = "";
                            }
 
@@ -501,12 +506,49 @@ let annotate_rendered change rendered =
     let marked = List.map (fun x -> match x with "" -> x | _ -> mark ^ x) lst in
     String.concat "\n" marked
 
+let render_level_head indent node path =
+    if Util.is_empty path || Config_tree.is_tag node path then
+        ""
+    else
+    let level = List.length path - 1 in
+    let indent_str = Config_tree.make_indent indent level in
+    if Config_tree.is_tag_value node path then
+        let tag_node =
+            match Util.get_last_n path 1 with
+            | None -> (* not possible as path non-empty *) "none"
+            | Some n -> n
+        in
+        let tag_value =
+            match Util.get_last path with
+            | None -> (* not possible as path non-empty *) "none"
+            | Some v -> v
+        in
+        Printf.sprintf "%s%s %s {\n" indent_str tag_node tag_value 
+    else
+        let name =
+            match Util.get_last path with
+            | None -> (* not possible as path non-empty *) "none"
+            | Some v -> v
+        in
+        Printf.sprintf "%s%s {\n" indent_str name
+
+let render_level_foot indent node path =
+    if Util.is_empty path || Config_tree.is_tag node path then
+        ""
+    else
+    let level = List.length path - 1 in
+    let indent_str = Config_tree.make_indent indent level in
+    Printf.sprintf "%s}\n" indent_str
+
 let config_diff (_rt : Reference_tree.t) ?(recurse=true) (path : string list) (Diff_show res) (m : change) =
     (* alert exn Vytree.get, Reference_tree.refpath, Config_tree.get_values, Reference_tree.is_multi:
         [Vytree.Empty_path] checked at only point possible (Unchanged)
         [Vytree.Nonexistent_path] function diff never calls diff_func on nonexistent path
      *)
-    let diff_str = res.config_diff
+    let diff_str = res.config_diff in
+    let level =
+        if List.length path > 0 then List.length path - 1
+        else 0
     in
     match m with
     | Added ->
@@ -517,7 +559,7 @@ let config_diff (_rt : Reference_tree.t) ?(recurse=true) (path : string list) (D
             4 (List.length path - 1) ((Vytree.get[@alert "-exn"]) res.right path)
         in
         let rev_diff = diff_str ^ annotate_rendered m rendered in
-        Diff_show {res with config_diff = rev_diff; }
+        Diff_show {res with config_diff = rev_diff; last_level = level;}
     | Subtracted ->
         let rendered =
 (*            Config_tree.render_config ((Vytree.get[@alert "-exn"])
@@ -526,27 +568,43 @@ let config_diff (_rt : Reference_tree.t) ?(recurse=true) (path : string list) (D
             4 (List.length path - 1) ((Vytree.get[@alert "-exn"]) res.left path)
         in
         let rev_diff = diff_str ^ annotate_rendered m rendered in
-        Diff_show {res with config_diff = rev_diff; }
+        Diff_show {res with config_diff = rev_diff; last_level = level;}
     | Unchanged ->
         begin
         match recurse with
         | false ->
-            Diff_show (res)
+            let what =
+                match Util.get_last path with
+                | None -> "what"
+                | Some c -> c
+            in
+            if level > 0 && level <= res.last_level then
+            let () = print_endline (Printf.sprintf "JSE in turn %s\n" what) in
+                let rev_diff = res.head ^ diff_str ^ res.foot in
+                Diff_show {res with last_level = level; config_diff = rev_diff;
+                           head = render_level_head 4 res.left path;
+                           foot = render_level_foot 4 res.left path;
+                          }
+            else
+            let () = print_endline (Printf.sprintf "JSE in descent %s\n" what) in
+                let rev_head = res.head ^ render_level_head 4 res.left path in
+                let rev_foot = (render_level_foot 4 res.left path) ^ res.foot in
+                Diff_show {res with last_level = level; head = rev_head; foot = rev_foot;}
         | true ->
             match path with
-            | [] ->
+            | [] -> (* case left = right *)
                 let rendered =
                     Config_tree.render_config res.left
                 in
                 let rev_diff = diff_str ^ annotate_rendered m rendered in
-                Diff_show {res with config_diff = rev_diff; }
+                Diff_show {res with config_diff = rev_diff; last_level = level;}
             | _ ->
                 let rendered =
                     Config_tree.render_node
                     4 (List.length path - 1) ((Vytree.get[@alert "-exn"]) res.left path)
                 in
                 let rev_diff = diff_str ^ annotate_rendered m rendered in
-                Diff_show {res with config_diff = rev_diff; }
+                Diff_show {res with config_diff = rev_diff; last_level = level;}
         end
     | Updated _ ->
         Diff_show (res)
