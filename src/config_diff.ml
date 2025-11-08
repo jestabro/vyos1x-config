@@ -559,6 +559,11 @@ let config_diff (_rt : Reference_tree.t) ?(recurse=true) (path : string list) (D
             4 (List.length path - 1) ((Vytree.get[@alert "-exn"]) res.right path)
         in
         let rev_diff = diff_str ^ annotate_rendered m rendered in
+        let rev_diff =
+            if level > 0 && level <= res.last_level then
+                res.head ^ rev_diff ^ res.foot
+            else rev_diff
+        in
         Diff_show {res with config_diff = rev_diff; last_level = level;}
     | Subtracted ->
         let rendered =
@@ -568,6 +573,11 @@ let config_diff (_rt : Reference_tree.t) ?(recurse=true) (path : string list) (D
             4 (List.length path - 1) ((Vytree.get[@alert "-exn"]) res.left path)
         in
         let rev_diff = diff_str ^ annotate_rendered m rendered in
+        let rev_diff =
+            if level > 0 && level <= res.last_level then
+                res.head ^ rev_diff ^ res.foot
+            else rev_diff
+        in
         Diff_show {res with config_diff = rev_diff; last_level = level;}
     | Unchanged ->
         begin
@@ -579,7 +589,6 @@ let config_diff (_rt : Reference_tree.t) ?(recurse=true) (path : string list) (D
                 | Some c -> c
             in
             if level > 0 && level <= res.last_level then
-            let () = print_endline (Printf.sprintf "JSE in turn %s\n" what) in
                 let rev_diff = res.head ^ diff_str ^ res.foot in
                 Diff_show {res with last_level = level; config_diff = rev_diff;
                            head = render_level_head 4 res.left path;
