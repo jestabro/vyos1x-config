@@ -588,9 +588,8 @@ let config_diff (_rt : Reference_tree.t) ?(recurse=true) (path : string list) (D
                 | None -> "what"
                 | Some c -> c
             in
-            if level > 0 && level <= res.last_level then
-                let rev_diff = res.head ^ diff_str ^ res.foot in
-                Diff_show {res with last_level = level; config_diff = rev_diff;
+            if level <= res.last_level then
+                Diff_show {res with last_level = level;
                            head = render_level_head 4 res.left path;
                            foot = render_level_foot 4 res.left path;
                           }
