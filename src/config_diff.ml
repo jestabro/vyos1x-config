@@ -525,7 +525,7 @@ let render_level_head indent node path =
             | None -> (* not possible as path non-empty *) "none"
             | Some v -> v
         in
-        Printf.sprintf "%s%s %s {\n" indent_str tag_node tag_value 
+        Printf.sprintf "%s%s %s {\n" indent_str tag_node tag_value
     else
         let name =
             match Util.get_last path with
