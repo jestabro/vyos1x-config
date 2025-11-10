@@ -547,6 +547,8 @@ let config_diff (_rt : Reference_tree.t) ?(recurse=true) (path : string list) (D
         [Vytree.Empty_path] checked at only point possible (Unchanged)
         [Vytree.Nonexistent_path] function diff never calls diff_func on nonexistent path
      *)
+    let () = print_endline (Printf.sprintf "JSE path: %s\n" (Util.string_of_list path))
+    in
     let rec close_path s l =
         match l with
         | [] -> s, []
