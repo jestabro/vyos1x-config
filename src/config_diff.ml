@@ -116,7 +116,7 @@ let opt_cmp t1 t2 =
     in Util.lexical_numeric_compare (opt_val t1) (opt_val t2)
 
 let opt_zip n m =
-    left_opt_pairs n m @ right_opt_pairs n m |> List.sort_uniq alt_cmp
+    left_opt_pairs n m @ right_opt_pairs n m |> List.sort_uniq opt_cmp
 
 let get_opt_name left_opt right_opt =
     match left_opt, right_opt with
@@ -535,7 +535,7 @@ let render_level_foot indent node path =
     let indent_str = Config_tree.make_indent indent level in
     Printf.sprintf "%s}\n" indent_str
 
-let config_diff (_rt : Reference_tree.t) ?(recurse=true) (path : string list) (Diff_show res) (m : change) =
+let config_diff (rt : Reference_tree.t) ?(recurse=true) (path : string list) (Diff_show res) (m : change) =
     (* alert exn Vytree.get, Reference_tree.refpath, Config_tree.get_values, Reference_tree.is_multi:
         [Vytree.Empty_path] checked at only point possible (Unchanged)
         [Vytree.Nonexistent_path] function diff never calls diff_func on nonexistent path
@@ -551,7 +551,6 @@ let config_diff (_rt : Reference_tree.t) ?(recurse=true) (path : string list) (D
             else
                 let rendered = render_level_foot 4 res.left h in
                 let s' = s ^ annotate_rendered Unchanged rendered
-                (*let s' = s ^ render_level_foot 4 res.left h *)
                 in close_path s' tl
     in
     let diff_str, rev_blocks = close_path res.config_diff res.open_blocks
@@ -598,11 +597,9 @@ let config_diff (_rt : Reference_tree.t) ?(recurse=true) (path : string list) (D
                 let rev_diff = diff_str ^ annotate_rendered m rendered in
                 Diff_show {res with config_diff = rev_diff; open_blocks = rev_blocks;}
         end
-    | Updated _ ->
-        Diff_show (res)
-        (*
-            let refp = (Reference_tree.refpath[@alert "-exn"]) rt path in
-            let multi = (Reference_tree.is_multi[@alert "-exn"]) rt refp in
+    | Updated v ->
+        let refp = (Reference_tree.refpath[@alert "-exn"]) rt path in
+        let multi = (Reference_tree.is_multi[@alert "-exn"]) rt refp in
         let indent_str =
             Config_tree.make_indent 4 (List.length path - 1)
         in
@@ -616,7 +613,8 @@ let config_diff (_rt : Reference_tree.t) ?(recurse=true) (path : string list) (D
             let rendered =
                 Config_tree.render_values indent_str name v
             in
-            Diff_show {res with config_diff = annotate_rendered m rendered; }
+            let rev_diff = diff_str ^ annotate_rendered m rendered in
+            Diff_show {res with config_diff = rev_diff; open_blocks = rev_blocks;}
         | true ->
             let ov = (Config_tree.get_values[@alert "-exn"]) res.left path in
             let ov_set = ValueS.of_list ov in
@@ -625,21 +623,29 @@ let config_diff (_rt : Reference_tree.t) ?(recurse=true) (path : string list) (D
             let add_vals = ValueS.elements (ValueS.diff v_set ov_set) in
             let inter_vals = ValueS.elements (ValueS.inter ov_set v_set) in
             let sub_rendered =
-                Config_tree.render_values indent_str name sub_vals
+                match sub_vals with
+                | [] -> ""
+                | _ ->
+                    Config_tree.render_values indent_str name sub_vals
             in
             let sub_diff = annotate_rendered Subtracted sub_rendered in
             let add_rendered =
-                Config_tree.render_values indent_str name add_vals
+                match add_vals with
+                | [] -> ""
+                | _ ->
+                    Config_tree.render_values indent_str name add_vals
             in
             let add_diff = annotate_rendered Added add_rendered in
             let inter_rendered =
-                Config_tree.render_values indent_str name inter_vals
+                match inter_vals with
+                | [] -> ""
+                | _ ->
+                    Config_tree.render_values indent_str name inter_vals
             in
             let inter_diff = annotate_rendered Unchanged inter_rendered in
             let value_diff = sub_diff ^ inter_diff ^ add_diff in
             let rev_diff = diff_str ^ value_diff in
-            Diff_show {res with config_diff = rev_diff}
-         *)
+            Diff_show {res with config_diff = rev_diff; open_blocks = rev_blocks;}
 
 (* call recursive diff on config_trees with config_diff as the diff_func *)
 let diff_show rt path left right =
