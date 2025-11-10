@@ -25,6 +25,7 @@ module Diff_show : sig
                head: string;
                foot: string;
                last_level: int;
+               open_blocks: string list list;
                config_diff: string;
              }
 end
