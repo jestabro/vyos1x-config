@@ -22,6 +22,7 @@ end
 module Diff_show : sig
     type t = { left: Config_tree.t;
                right: Config_tree.t;
+               base_path: string list;
                open_blocks: string list list;
                config_diff: string;
              }

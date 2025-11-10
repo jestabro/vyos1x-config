@@ -26,6 +26,7 @@ end
 module Diff_show = struct
     type t = { left: Config_tree.t;
                right: Config_tree.t;
+               base_path: string list;
                open_blocks: string list list;
                config_diff: string;
              }
@@ -56,10 +57,11 @@ let make_diff_compare l r = Diff_compare { left = l; right = r;
                                 udiff = "";
                            }
 
-let make_diff_show l r = Diff_show { left = l; right = r;
+let make_diff_show l r path = Diff_show { left = l; right = r;
+                                base_path = path;
                                 open_blocks = [];
                                 config_diff = "";
-                           }
+                              }
 
 let name_of n = Vytree.name_of_node n
 let data_of n = Vytree.data_of_node n
@@ -630,7 +632,8 @@ let config_diff (rt : Reference_tree.t) ?(recurse=true) (path : string list) (Di
                 Diff_show {res with config_diff = rev_diff; open_blocks = rev_blocks;}
         end
     | Updated v ->
-        let refp = (Reference_tree.refpath[@alert "-exn"]) rt path in
+        let refp =
+            (Reference_tree.refpath[@alert "-exn"]) rt (res.base_path @ path) in
         let multi = (Reference_tree.is_multi[@alert "-exn"]) rt refp in
         let level = get_level_at_path res.left path in
         let indent_str =
@@ -694,7 +697,7 @@ let diff_show rt path left right =
             (Config_tree.get_subtree left path, Config_tree.get_subtree right path)
             else (left, right)
         in
-        let config_show = make_diff_show left right in
+        let config_show = make_diff_show left right path in
         let d = diff [] (config_diff rt) config_show (Option.some left, Option.some right)
         in
         let diff_show_result = eval_diff_result d in
