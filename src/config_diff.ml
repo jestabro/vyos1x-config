@@ -703,8 +703,9 @@ let diff_show rt path left right =
             else (left, right)
         in
         let config_show = make_diff_show left right path in
-        let d = diff [] (config_diff rt) config_show (Option.some left, Option.some right)
-        in
+        let ret = diff [] (config_diff rt) config_show (Option.some left, Option.some right) in
+        (* close final braces *)
+        let d = config_diff rt ~recurse:false [] ret Unchanged in
         let diff_show_result = eval_diff_result d in
         diff_show_result.config_diff
 
