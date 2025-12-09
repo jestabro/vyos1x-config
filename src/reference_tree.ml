@@ -687,6 +687,13 @@ let potential_leaf_value rtree cpath =
     | [] -> false
     | _ -> is_leaf rtree ref_drop_last
 
+let reference_path_exists rtree cpath =
+    if Util.is_empty cpath then false
+    else
+    let rpath = refpath rtree cpath in
+    if Util.is_empty rpath then false
+    else true
+
 
 (* The 'edit' command can descend along a not-as-yet configured path,
    assuming that it is
