@@ -591,20 +591,6 @@ let get_value_help reftree path =
     let data = (Vytree.get_data[@alert "-exn"]) reftree path in
     data.value_help
 
-let get_completion_data reftree path =
-    (* raises:
-        [Vytree.Empty_path]
-        [Vytree.Nonexistent_path]
-       alert exn Vytree.get:
-        [Vytree.Empty_path] allow raise
-        [Vytree.Nonexistent_path] allow raise
-     *)
-    let aux node =
-        let data = Vytree.data_of_node node in
-        (data.node_type, data.multi, data.help)
-    in
-    List.map aux (Vytree.children_of_node @@ (Vytree.get[@alert "-exn"]) reftree path)
-
 let get_default_value reftree path =
     (* raises:
         [Vytree.Empty_path]
@@ -766,6 +752,87 @@ let allowed_edit_level rtree path =
     | `Leaf_value ->
         Error {|The "edit" command cannot be issued at the level of leaf value|}
     | _ -> Ok ()
+
+
+(* Add completion_env types here, so as to avoid type annotations for all
+   xml functions above, due to shared field names last in scope.
+ *)
+
+type completion_env = {
+    name: string;
+    path_typ: path_type;
+    values: string list;
+    completion_help: completion_help_type list;
+    help: string;
+    value_help: (string * string) list;
+    multi: bool;
+} [@@deriving yojson]
+
+type completion_env_list = completion_env list [@@deriving yojson]
+
+let get_completion_data (node: t) =
+    let name = Vytree.name_of_node node in
+    let data = Vytree.data_of_node node in
+    { name=name;
+      values=[];
+      path_typ=`Other;
+      multi=data.multi;
+      completion_help=data.completion_help;
+      help=data.help;
+      value_help=data.value_help;
+    }
+
+let get_completion_env rtree ctree cpath =
+    let last = Util.get_last cpath in
+    let last_elt =
+        match last with
+        | None -> ""
+        | Some c -> c
+    in
+    let path = Util.drop_last cpath in
+    let path_typ = get_path_type rtree path in
+    let rpath = refpath rtree path in
+    match path_typ with
+    | `Invalid -> Error {|Invalid path|}
+    | `Leaf_value -> Error {|Leaf value|}
+    | `Leaf ->
+        let comp_env =
+            get_completion_data ((Vytree.get[@alert "-exn"]) rtree rpath) in
+        let values =
+            (Config_tree.get_values[@alert "-exn"]) ctree path in
+        Ok [{ comp_env with values = values; path_typ = `Leaf_value }]
+    | `Tag ->
+        let comp_env =
+            get_completion_data ((Vytree.get[@alert "-exn"]) rtree rpath) in
+        let values =
+            Vytree.list_children ((Vytree.get[@alert "-exn"]) ctree path) in
+        Ok [{ comp_env with values = values; path_typ = `Tag_value }]
+    | _ ->
+        let node =
+            match rpath with
+            | [] -> rtree
+            | _ -> (Vytree.get[@alert "-exn"]) rtree rpath
+        in
+        let aux node' =
+            let comp_env = get_completion_data node' in
+            let name = Vytree.name_of_node node' in
+            let path_typ = get_path_type rtree (path @ [name]) in
+            { comp_env with values = [name]; path_typ = path_typ }
+        in
+        let children' =
+            List.filter (fun s -> String.starts_with ~prefix:last_elt
+            (Vytree.name_of_node s)) (Vytree.children_of_node node)
+        in
+        Ok (List.map aux children')
+
+let get_completion_env_str ?(legacy_format=false) rtree ctree cpath =
+    if not legacy_format then
+        match get_completion_env rtree ctree cpath with
+        | Error e -> Error e
+        | Ok c ->
+            Ok (completion_env_list_to_yojson c |> Yojson.Safe.to_string)
+    else Error {|Not implemented|}
+
 
 let get_ceil_data f reftree path =
     (* raises:
