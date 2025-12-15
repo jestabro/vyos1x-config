@@ -795,7 +795,7 @@ let get_completion_env rtree ctree cpath =
     match path_typ with
     | `Invalid -> Error {|Invalid path|}
     | `Leaf_value -> Error {|Leaf value|}
-    | `Leaf ->
+    | `Leaf | `Multi ->
         let compl_env =
             get_completion_data ((Vytree.get[@alert "-exn"]) rtree rpath) in
         let values =
