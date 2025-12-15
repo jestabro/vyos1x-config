@@ -832,10 +832,12 @@ let get_completion_env_str ?(legacy_format=false) rtree ctree cpath =
     | Ok c ->
         if not legacy_format then
         Ok (completion_env_list_to_yojson c |> Yojson.Safe.to_string)
-        else (*Error {|Not implemented|} *)
+        else Error {|Not implemented|} (*
         let path_typ = get_path_type rtree cpath in
         let values = List.fold_left (fun l -> acc @ l.values) c in
         let (comp_vals, comp_val, comp_help, help_format, help_string) =
+        let func c =
+        let (comp_vals, comp_val, comp_help, value_help)
         match path_typ with
         | `Other ->
             (c.values, false, "", c.values, [c.help])
@@ -859,7 +861,7 @@ let get_completion_env_str ?(legacy_format=false) rtree ctree cpath =
         (Printf.sprintf {|_cli_shell_api_comp_help=%s; |} comp_help)^
         (Printf.sprintf {|_cli_shell_api_hitems=%s; |} (print_help_list help_format))^
         (Printf.sprintf {|_cli_shell_api_hstrs=%s;|} (print_help_list help_string))
-
+*)
 
 let get_ceil_data f reftree path =
     (* raises:
