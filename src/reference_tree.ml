@@ -268,9 +268,9 @@ let rec insert_from_xml basepath reftree xml =
         let path = basepath @ [name] in
         let new_tree =
             if data <> default_data then
-                (Vytree.insert_or_update[@alert "-exn"]) reftree path data
+                (Vytree.insert_or_update[@alert "-exn"]) ~position:Lexical reftree path data
             else
-                (Vytree.insert_maybe[@alert "-exn"]) reftree path data
+                (Vytree.insert_maybe[@alert "-exn"]) ~position:Lexical reftree path data
         in
         (match node_type with
         | `Leaf -> new_tree
@@ -796,17 +796,17 @@ let get_completion_env rtree ctree cpath =
     | `Invalid -> Error {|Invalid path|}
     | `Leaf_value -> Error {|Leaf value|}
     | `Leaf ->
-        let comp_env =
+        let compl_env =
             get_completion_data ((Vytree.get[@alert "-exn"]) rtree rpath) in
         let values =
             (Config_tree.get_values[@alert "-exn"]) ctree path in
-        Ok [{ comp_env with values = values; path_typ = `Leaf_value }]
+        Ok [{ compl_env with values = values; path_typ = `Leaf_value }]
     | `Tag ->
-        let comp_env =
+        let compl_env =
             get_completion_data ((Vytree.get[@alert "-exn"]) rtree rpath) in
         let values =
             Vytree.list_children ((Vytree.get[@alert "-exn"]) ctree path) in
-        Ok [{ comp_env with values = values; path_typ = `Tag_value }]
+        Ok [{ compl_env with values = values; path_typ = `Tag_value }]
     | _ ->
         let node =
             match rpath with
@@ -814,10 +814,10 @@ let get_completion_env rtree ctree cpath =
             | _ -> (Vytree.get[@alert "-exn"]) rtree rpath
         in
         let aux node' =
-            let comp_env = get_completion_data node' in
+            let compl_env = get_completion_data node' in
             let name = Vytree.name_of_node node' in
             let path_typ = get_path_type rtree (path @ [name]) in
-            { comp_env with values = [name]; path_typ = path_typ }
+            { compl_env with values = [name]; path_typ = path_typ }
         in
         let children' =
             List.filter (fun s -> String.starts_with ~prefix:last_elt
@@ -826,12 +826,39 @@ let get_completion_env rtree ctree cpath =
         Ok (List.map aux children')
 
 let get_completion_env_str ?(legacy_format=false) rtree ctree cpath =
-    if not legacy_format then
-        match get_completion_env rtree ctree cpath with
-        | Error e -> Error e
-        | Ok c ->
-            Ok (completion_env_list_to_yojson c |> Yojson.Safe.to_string)
-    else Error {|Not implemented|}
+    let compl_env = get_completion_env rtree ctree cpath in
+    match compl_env with
+    | Error e -> Error e
+    | Ok c ->
+        if not legacy_format then
+        Ok (completion_env_list_to_yojson c |> Yojson.Safe.to_string)
+        else (*Error {|Not implemented|} *)
+        let path_typ = get_path_type rtree cpath in
+        let values = List.fold_left (fun l -> acc @ l.values) c in
+        let (comp_vals, comp_val, comp_help, help_format, help_string) =
+        match path_typ with
+        | `Other ->
+            (c.values, false, "", c.values, [c.help])
+        | `Tag ->
+            let _, help_string = List.split c.value_help in
+            (c.values, false, "", c.values, help_string)
+        | `Tag_value ->
+            let help_format, help_string = List.split c.value_help in
+            (c.values, true, "", help_format, help_string)
+        | `Leaf ->
+            (c.values, false, "", c.values, [c.help])
+        | _ -> ([], false, "", [], []) (* never reached *)
+        in
+        let print_help_list l =
+            {|(|}^
+            (String.concat ", " (List.map Printf.sprintf {|'%s'|} l))^
+            {|)|}
+        in
+        (Printf.sprintf {|_cli_shell_api_comp_values=%s; |} (print_help_list comp_vals))^
+        (Printf.sprintf {|_cli_shell_api_last_comp_val=%b; |} comp_val)^
+        (Printf.sprintf {|_cli_shell_api_comp_help=%s; |} comp_help)^
+        (Printf.sprintf {|_cli_shell_api_hitems=%s; |} (print_help_list help_format))^
+        (Printf.sprintf {|_cli_shell_api_hstrs=%s;|} (print_help_list help_string))
 
 
 let get_ceil_data f reftree path =
