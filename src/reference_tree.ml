@@ -835,18 +835,18 @@ let get_completion_env_str ?(legacy_format=false) rtree ctree cpath =
     | Ok comp ->
         if not legacy_format then
             Ok (completion_env_list_to_yojson comp |> Yojson.Safe.to_string)
-        else (* Error {|Not implemented|} *)
+        else
         let path_typ = get_path_type rtree (Util.drop_last cpath) in
-        let func (comp_vals, comp_help, help, value_help) comp_env =
-            comp_vals @ comp_env.values,
-            comp_help @ comp_env.completion_help,
+        let func (compl_vals, compl_help, help, value_help) comp_env =
+            compl_vals @ comp_env.values,
+            compl_help @ comp_env.completion_help,
             help @ [comp_env.help],
             value_help @ comp_env.value_help
         in
         let (comp_vals, comp_val, comp_help, help_format, help_string) =
         match path_typ with
         | `Tag | `Leaf | `Multi ->
-            let (compl_vals, _compl_help, _help, value_help) =
+            let (compl_vals, _, _, value_help) =
                 let a, b, c, d =
                     List.fold_left func ([], [], [], []) comp in
                 List.rev a, b, c, List.rev d
@@ -854,19 +854,13 @@ let get_completion_env_str ?(legacy_format=false) rtree ctree cpath =
             let value_help_fmt, value_help_string = List.split value_help in
             (compl_vals, true, "", value_help_fmt, value_help_string)
         | `Other | `Tag_value ->
-            let (compl_vals, _compl_help, help, _value_help) =
+            let (compl_vals, _, help, _) =
                 let sorted_comp =
                     let sort s t = Util.lexical_numeric_compare s.name t.name
-                    in
-                    List.sort sort comp
-                in
-                let a, b, c, d =
-                    List.fold_left func ([], [], [], []) sorted_comp in
-                a, b, c, d
+                    in List.sort sort comp
+                in List.fold_left func ([], [], [], []) sorted_comp
             in
-(*            let _, value_help_string = List.split value_help in *)
             (compl_vals, false, "", compl_vals, help)
-            (* this one needs to be value_help_string and compl_vals (?) ordered lexically *)
         | _ -> ([], false, "", [], []) (* never reached *)
         in
         let print_help_list l =
