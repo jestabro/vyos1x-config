@@ -832,9 +832,9 @@ let get_completion_env_str ?(legacy_format=false) rtree ctree cpath =
     let compl_env = get_completion_env rtree ctree cpath in
     match compl_env with
     | Error e -> Error e
-    | Ok c ->
+    | Ok comp ->
         if not legacy_format then
-            Ok (completion_env_list_to_yojson c |> Yojson.Safe.to_string)
+            Ok (completion_env_list_to_yojson comp |> Yojson.Safe.to_string)
         else (* Error {|Not implemented|} *)
         let path_typ = get_path_type rtree (Util.drop_last cpath) in
         let func (comp_vals, comp_help, help, value_help) comp_env =
@@ -848,18 +848,21 @@ let get_completion_env_str ?(legacy_format=false) rtree ctree cpath =
         | `Tag | `Leaf | `Multi ->
             let (compl_vals, _compl_help, _help, value_help) =
                 let a, b, c, d =
-                    List.fold_left func ([], [], [], []) c in
+                    List.fold_left func ([], [], [], []) comp in
                 List.rev a, b, c, List.rev d
             in
             let value_help_fmt, value_help_string = List.split value_help in
             (compl_vals, true, "", value_help_fmt, value_help_string)
         | `Other | `Tag_value ->
             let (compl_vals, _compl_help, help, _value_help) =
+                let sorted_comp =
+                    let sort s t = Util.lexical_numeric_compare s.name t.name
+                    in
+                    List.sort sort comp
+                in
                 let a, b, c, d =
-                    List.fold_left func ([], [], [], []) c in
-                List.sort Util.lexical_numeric_compare a, b,
-                List.sort Util.lexical_numeric_compare c,
-                List.sort Util.lexical_numeric_compare_tuple d
+                    List.fold_left func ([], [], [], []) sorted_comp in
+                a, b, c, d
             in
 (*            let _, value_help_string = List.split value_help in *)
             (compl_vals, false, "", compl_vals, help)
