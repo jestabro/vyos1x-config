@@ -758,6 +758,15 @@ let allowed_edit_level rtree path =
    xml functions above, due to shared field names last in scope.
  *)
 
+type op_type = Set | Delete | Comment | Unknown
+
+let op_of_string op_str =
+    match op_str with
+    | "set" -> Set
+    | "delete" -> Delete
+    | "comment" -> Comment
+    | _ -> Unknown
+
 type completion_env = {
     name: string;
     path_typ: path_type;
@@ -782,7 +791,16 @@ let get_completion_data (node: t) =
       value_help=data.value_help;
     }
 
-let get_completion_env rtree ctree cpath =
+let get_completion_env rtree ctree op cpath =
+    let op = op_of_string op in
+    match op with
+    | Unknown -> Error {|Unknown operation|}
+    | _ ->
+    let restricted =
+        match op with
+        | Delete | Comment -> true
+        | _ -> false
+    in
     let last = Util.get_last cpath in
     let last_elt =
         match last with
@@ -792,6 +810,9 @@ let get_completion_env rtree ctree cpath =
     let path = Util.drop_last cpath in
     let path_typ = get_path_type rtree path in
     let rpath = refpath rtree path in
+    if restricted && not (Util.is_empty path) && not ((Vytree.exists[@alert "-exn"]) ctree path)
+    then Error {|Nonexistent path|}
+    else
     match path_typ with
     | `Invalid -> Error {|Invalid path|}
     | `Leaf_value -> Error {|Leaf value|}
@@ -806,9 +827,13 @@ let get_completion_env rtree ctree cpath =
         Ok [{ compl_env with values = values; path_typ = `Leaf_value }]
     | `Tag ->
         let compl_env =
-            get_completion_data ((Vytree.get[@alert "-exn"]) rtree rpath) in
+            get_completion_data ((Vytree.get[@alert "-exn"]) rtree rpath)
+        in
         let values =
-            Vytree.list_children ((Vytree.get[@alert "-exn"]) ctree path) in
+            try
+                Vytree.list_children ((Vytree.get[@alert "-exn"]) ctree path)
+            with Vytree.Nonexistent_path -> []
+        in
         Ok [{ compl_env with values = values; path_typ = `Tag_value }]
     | _ ->
         let node =
@@ -816,20 +841,35 @@ let get_completion_env rtree ctree cpath =
             | [] -> rtree
             | _ -> (Vytree.get[@alert "-exn"]) rtree rpath
         in
+        let children =
+            let get_active s =
+                let active_children =
+                    try
+                        Vytree.list_children ((Vytree.get[@alert "-exn"]) ctree path)
+                    with Vytree.Nonexistent_path -> []
+                in
+                List.mem (Vytree.name_of_node s) active_children
+            in
+            if restricted then
+                List.filter get_active (Vytree.children_of_node node)
+            else Vytree.children_of_node node
+        in
+        let children' =
+            let get_match s =
+                String.starts_with ~prefix:last_elt (Vytree.name_of_node s)
+            in
+            List.filter get_match children
+        in
         let aux node' =
             let compl_env = get_completion_data node' in
             let name = Vytree.name_of_node node' in
             let path_typ = get_path_type rtree (path @ [name]) in
             { compl_env with values = [name]; path_typ = path_typ }
         in
-        let children' =
-            List.filter (fun s -> String.starts_with ~prefix:last_elt
-            (Vytree.name_of_node s)) (Vytree.children_of_node node)
-        in
         Ok (List.map aux children')
 
-let get_completion_env_str ?(legacy_format=false) rtree ctree cpath =
-    let compl_env = get_completion_env rtree ctree cpath in
+let get_completion_env_str ?(legacy_format=false) rtree ctree op cpath =
+    let compl_env = get_completion_env rtree ctree op cpath in
     match compl_env with
     | Error e -> Error e
     | Ok comp ->

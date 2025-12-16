@@ -137,9 +137,9 @@ val get_path_type : t -> string list -> path_type
 
 val get_path_type_str : ?legacy_format:bool -> t -> string list -> string
 
-val get_completion_env : t -> Config_tree.t -> string list -> (completion_env_list, string) result
+val get_completion_env : t -> Config_tree.t -> string -> string list -> (completion_env_list, string) result
 
-val get_completion_env_str : ?legacy_format:bool -> t -> Config_tree.t -> string list -> (string, string) result
+val get_completion_env_str : ?legacy_format:bool -> t -> Config_tree.t -> string -> string list -> (string, string) result
 
 val allowed_edit_level : t -> string list -> (unit, string) result
 
