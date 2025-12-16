@@ -799,7 +799,10 @@ let get_completion_env rtree ctree cpath =
         let compl_env =
             get_completion_data ((Vytree.get[@alert "-exn"]) rtree rpath) in
         let values =
-            (Config_tree.get_values[@alert "-exn"]) ctree path in
+            try
+                (Config_tree.get_values[@alert "-exn"]) ctree path
+            with Vytree.Nonexistent_path -> []
+        in
         Ok [{ compl_env with values = values; path_typ = `Leaf_value }]
     | `Tag ->
         let compl_env =
@@ -831,37 +834,41 @@ let get_completion_env_str ?(legacy_format=false) rtree ctree cpath =
     | Error e -> Error e
     | Ok c ->
         if not legacy_format then
-        Ok (completion_env_list_to_yojson c |> Yojson.Safe.to_string)
-        else Error {|Not implemented|} (*
-        let path_typ = get_path_type rtree cpath in
-        let values = List.fold_left (fun l -> acc @ l.values) c in
+            Ok (completion_env_list_to_yojson c |> Yojson.Safe.to_string)
+        else (* Error {|Not implemented|} *)
+        let path_typ = get_path_type rtree (Util.drop_last cpath) in
+        let func (comp_vals, comp_help, _help, value_help) comp_env =
+            comp_vals @ comp_env.values,
+            comp_help @ comp_env.completion_help,
+            comp_env.help,
+            value_help @ comp_env.value_help
+        in
+        let (compl_vals, _compl_help, help, value_help) =
+            let a, b, c, d =
+                List.fold_left func ([], [], "", []) c in
+            List.rev a, b, c, List.sort Util.lexical_numeric_compare_tuple d
+        in
+        let value_help_fmt, value_help_string = List.split value_help in
         let (comp_vals, comp_val, comp_help, help_format, help_string) =
-        let func c =
-        let (comp_vals, comp_val, comp_help, value_help)
         match path_typ with
-        | `Other ->
-            (c.values, false, "", c.values, [c.help])
-        | `Tag ->
-            let _, help_string = List.split c.value_help in
-            (c.values, false, "", c.values, help_string)
-        | `Tag_value ->
-            let help_format, help_string = List.split c.value_help in
-            (c.values, true, "", help_format, help_string)
-        | `Leaf ->
-            (c.values, false, "", c.values, [c.help])
+        | `Tag | `Leaf | `Multi ->
+            (compl_vals, true, "", value_help_fmt, value_help_string)
+        | `Other | `Tag_value ->
+            (compl_vals, false, "", compl_vals, [help])
         | _ -> ([], false, "", [], []) (* never reached *)
         in
         let print_help_list l =
             {|(|}^
-            (String.concat ", " (List.map Printf.sprintf {|'%s'|} l))^
+            (String.concat ", " (List.map (Printf.sprintf {|'%s'|}) l))^
             {|)|}
         in
+        let res =
         (Printf.sprintf {|_cli_shell_api_comp_values=%s; |} (print_help_list comp_vals))^
         (Printf.sprintf {|_cli_shell_api_last_comp_val=%b; |} comp_val)^
-        (Printf.sprintf {|_cli_shell_api_comp_help=%s; |} comp_help)^
+        (Printf.sprintf {|_cli_shell_api_comp_help='%s'; |} comp_help)^
         (Printf.sprintf {|_cli_shell_api_hitems=%s; |} (print_help_list help_format))^
         (Printf.sprintf {|_cli_shell_api_hstrs=%s;|} (print_help_list help_string))
-*)
+        in Ok res
 
 let get_ceil_data f reftree path =
     (* raises:

@@ -82,6 +82,11 @@ let default default_value opt =
 let lexical_numeric_compare s t =
     lex_numeric_compare s t
 
+let lexical_numeric_compare_tuple (x0, y0) (x1, y1) =
+    match lexical_numeric_compare x0 x1 with
+    | 0 -> lexical_numeric_compare y0 y1
+    | _ as c -> c
+
 (** Convert a relative path to an absolute path based on the current working directory *)
 let absolute_path relative_path =
     FilePath.make_absolute (Sys.getcwd ()) relative_path
