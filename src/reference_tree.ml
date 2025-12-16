@@ -268,9 +268,9 @@ let rec insert_from_xml basepath reftree xml =
         let path = basepath @ [name] in
         let new_tree =
             if data <> default_data then
-                (Vytree.insert_or_update[@alert "-exn"]) ~position:Lexical reftree path data
+                (Vytree.insert_or_update[@alert "-exn"]) reftree path data
             else
-                (Vytree.insert_maybe[@alert "-exn"]) ~position:Lexical reftree path data
+                (Vytree.insert_maybe[@alert "-exn"]) reftree path data
         in
         (match node_type with
         | `Leaf -> new_tree
@@ -846,7 +846,7 @@ let get_completion_env_str ?(legacy_format=false) rtree ctree cpath =
         let (compl_vals, _compl_help, help, value_help) =
             let a, b, c, d =
                 List.fold_left func ([], [], "", []) c in
-            List.rev a, b, c, List.sort Util.lexical_numeric_compare_tuple d
+            List.rev a, b, c, List.rev d
         in
         let value_help_fmt, value_help_string = List.split value_help in
         let (comp_vals, comp_val, comp_help, help_format, help_string) =
@@ -854,7 +854,8 @@ let get_completion_env_str ?(legacy_format=false) rtree ctree cpath =
         | `Tag | `Leaf | `Multi ->
             (compl_vals, true, "", value_help_fmt, value_help_string)
         | `Other | `Tag_value ->
-            (compl_vals, false, "", compl_vals, [help])
+            (compl_vals, false, "", compl_vals, [help]) (* this one needs to
+            be value_help_string and compl_vals (?) ordered lexically *)
         | _ -> ([], false, "", [], []) (* never reached *)
         in
         let print_help_list l =
