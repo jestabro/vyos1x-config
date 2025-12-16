@@ -837,10 +837,10 @@ let get_completion_env_str ?(legacy_format=false) rtree ctree cpath =
             Ok (completion_env_list_to_yojson c |> Yojson.Safe.to_string)
         else (* Error {|Not implemented|} *)
         let path_typ = get_path_type rtree (Util.drop_last cpath) in
-        let func (comp_vals, comp_help, _help, value_help) comp_env =
+        let func (comp_vals, comp_help, help, value_help) comp_env =
             comp_vals @ comp_env.values,
             comp_help @ comp_env.completion_help,
-            comp_env.help,
+            help @ [comp_env.help],
             value_help @ comp_env.value_help
         in
         let (comp_vals, comp_val, comp_help, help_format, help_string) =
@@ -848,26 +848,27 @@ let get_completion_env_str ?(legacy_format=false) rtree ctree cpath =
         | `Tag | `Leaf | `Multi ->
             let (compl_vals, _compl_help, _help, value_help) =
                 let a, b, c, d =
-                    List.fold_left func ([], [], "", []) c in
+                    List.fold_left func ([], [], [], []) c in
                 List.rev a, b, c, List.rev d
             in
             let value_help_fmt, value_help_string = List.split value_help in
             (compl_vals, true, "", value_help_fmt, value_help_string)
         | `Other | `Tag_value ->
-            let (compl_vals, _compl_help, _help, value_help) =
+            let (compl_vals, _compl_help, help, _value_help) =
                 let a, b, c, d =
-                    List.fold_left func ([], [], "", []) c in
-                List.sort Util.lexical_numeric_compare a, b, c,
+                    List.fold_left func ([], [], [], []) c in
+                List.sort Util.lexical_numeric_compare a, b,
+                List.sort Util.lexical_numeric_compare c,
                 List.sort Util.lexical_numeric_compare_tuple d
             in
-            let _, value_help_string = List.split value_help in
-            (compl_vals, false, "", compl_vals, value_help_string)
+(*            let _, value_help_string = List.split value_help in *)
+            (compl_vals, false, "", compl_vals, help)
             (* this one needs to be value_help_string and compl_vals (?) ordered lexically *)
         | _ -> ([], false, "", [], []) (* never reached *)
         in
         let print_help_list l =
             {|(|}^
-            (String.concat ", " (List.map (Printf.sprintf {|'%s'|}) l))^
+            (String.concat " " (List.map (Printf.sprintf {|'%s'|}) l))^
             {|)|}
         in
         let res =
