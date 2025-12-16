@@ -843,19 +843,26 @@ let get_completion_env_str ?(legacy_format=false) rtree ctree cpath =
             comp_env.help,
             value_help @ comp_env.value_help
         in
-        let (compl_vals, _compl_help, help, value_help) =
-            let a, b, c, d =
-                List.fold_left func ([], [], "", []) c in
-            List.rev a, b, c, List.rev d
-        in
-        let value_help_fmt, value_help_string = List.split value_help in
         let (comp_vals, comp_val, comp_help, help_format, help_string) =
         match path_typ with
         | `Tag | `Leaf | `Multi ->
+            let (compl_vals, _compl_help, _help, value_help) =
+                let a, b, c, d =
+                    List.fold_left func ([], [], "", []) c in
+                List.rev a, b, c, List.rev d
+            in
+            let value_help_fmt, value_help_string = List.split value_help in
             (compl_vals, true, "", value_help_fmt, value_help_string)
         | `Other | `Tag_value ->
-            (compl_vals, false, "", compl_vals, [help]) (* this one needs to
-            be value_help_string and compl_vals (?) ordered lexically *)
+            let (compl_vals, _compl_help, _help, value_help) =
+                let a, b, c, d =
+                    List.fold_left func ([], [], "", []) c in
+                List.sort Util.lexical_numeric_compare a, b, c,
+                List.sort Util.lexical_numeric_compare_tuple d
+            in
+            let _, value_help_string = List.split value_help in
+            (compl_vals, false, "", compl_vals, value_help_string)
+            (* this one needs to be value_help_string and compl_vals (?) ordered lexically *)
         | _ -> ([], false, "", [], []) (* never reached *)
         in
         let print_help_list l =
