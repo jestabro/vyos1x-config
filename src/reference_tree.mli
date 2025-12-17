@@ -2,6 +2,9 @@ type node_type = [ `Leaf | `Tag | `Other ]
 
 type path_type = [ node_type | `Tag_value | `Leaf_value | `Multi | `Invalid ]
 
+val path_type_to_yojson : path_type -> Yojson.Safe.t
+val path_type_of_yojson : Yojson.Safe.t -> (path_type, string) result
+
 type completion_help_type =
     | List of string [@name "list"]
     | Path of string [@name "path"]
@@ -47,18 +50,6 @@ exception Validation_error of string
 val default_data : ref_node_data
 
 val default : t
-
-type completion_env = {
-    name: string;
-    path_typ: path_type;
-    values: string list;
-    completion_help: completion_help_type list;
-    help: string;
-    value_help: (string * string) list;
-    multi: bool;
-} [@@deriving yojson]
-
-type completion_env_list = completion_env list [@@deriving yojson]
 
 val load_from_xml : t -> string -> t
 [@@alert exn "Reference_tree.Bad_interface_definition"]
@@ -115,8 +106,6 @@ val get_value_help : t -> string list -> (string * string) list
 [@@alert exn "Vytree.Empty_path"]
 [@@alert exn "Vytree.Nonexistent_path"]
 
-val get_completion_data : t -> completion_env
-
 val get_default_value : t -> string list -> string option
 [@@alert exn "Vytree.Empty_path"]
 [@@alert exn "Vytree.Nonexistent_path"]
@@ -136,10 +125,6 @@ val reference_path_exists : t -> string list -> bool
 val get_path_type : t -> string list -> path_type
 
 val get_path_type_str : ?legacy_format:bool -> t -> string list -> string
-
-val get_completion_env : t -> Config_tree.t -> string -> string list -> (completion_env_list, string) result
-
-val get_completion_env_str : ?legacy_format:bool -> t -> Config_tree.t -> string -> string list -> (string, string) result
 
 val allowed_edit_level : t -> string list -> (unit, string) result
 
