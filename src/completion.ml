@@ -82,17 +82,18 @@ let get_completion_env rtree ctree op cpath =
             | _ -> (Vytree.get[@alert "-exn"]) rtree rpath
         in
         let children =
-            let get_active s =
-                let active_children =
-                    try
-                        Vytree.list_children ((Vytree.get[@alert "-exn"]) ctree path)
-                    with Vytree.Nonexistent_path -> []
-                in
-                List.mem (Vytree.name_of_node s) active_children
+            let child_set = Vytree.children_of_node node in
+            if not restricted then child_set
+            else
+            let extant_children =
+                try
+                    Vytree.list_children ((Vytree.get[@alert "-exn"]) ctree path)
+                with Vytree.Nonexistent_path -> []
             in
-            if restricted then
-                List.filter get_active (Vytree.children_of_node node)
-            else Vytree.children_of_node node
+            let is_extant s =
+                List.mem (Vytree.name_of_node s) extant_children
+            in
+            List.filter is_extant child_set
         in
         let children' =
             let get_match s =
@@ -116,6 +117,7 @@ let get_completion_env_str ?(legacy_format=false) rtree ctree op cpath =
         if not legacy_format then
             Ok (completion_env_list_to_yojson comp |> Yojson.Safe.to_string)
         else
+        (* produce the strings expected by vbash completion *)
         let path_typ = Reference_tree.get_path_type rtree (Util.drop_last cpath) in
         let func (compl_vals, compl_help, help, value_help) comp_env =
             compl_vals @ comp_env.values,
