@@ -44,15 +44,15 @@ let execute_completion_script cmd =
 let read_completion_help ctree (lst: Reference_tree.completion_help_type list) =
     let read_elem chelp =
         match chelp with
-        | Reference_tree.List l -> String.split_on_char ' ' l
+        | Reference_tree.List l -> Util.list_of_string l
         | Reference_tree.Path p ->
             begin
-            let path = String.split_on_char ' ' p in
+            let path = Util.list_of_string p in
             try (Vytree.children_of_path[@alert "-exn"]) ctree path
             with Vytree.Empty_path | Vytree.Nonexistent_path -> []
             end
         | Reference_tree.Script s ->
-            String.trim (execute_completion_script s) |> String.split_on_char ' '
+            Util.list_of_string (execute_completion_script s)
     in
     let func acc elem =
         acc @ (read_elem elem)
