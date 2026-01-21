@@ -5,7 +5,7 @@
 
 let hybrid_tree ?(with_first_node=true) rt ct mask path =
     let ct_sub = Config_tree.get_subtree ~with_node:with_first_node ct path in
-    let add_defaults ct p' =
+    let add_defaults ct' p' =
         let rpath = Reference_tree.refpath rt (path @ p') in
         let rt_sub = Reference_tree.get_subtree rt rpath in
         let res =
@@ -19,7 +19,7 @@ let hybrid_tree ?(with_first_node=true) rt ct mask path =
                 then (p, (continue, acc))
                 else
                 if (Vytree.is_terminal_path[@alert "-exn"]) mask total_path &&
-                   (Vytree.exists[@alert "-exn"]) ct total_path
+                   (Vytree.exists[@alert "-exn"]) ct' total_path
                 then (p, (false, acc))
                 else
                 let data = Vytree.data_of_node node in
@@ -41,7 +41,7 @@ let hybrid_tree ?(with_first_node=true) rt ct mask path =
                             in (p, (continue, acc'))
                     end
                 | _ -> (p, (continue, acc))
-            in Vytree.fold_tree_with_path fold_defaults ([], (true, ct)) rt_sub
+            in Vytree.fold_tree_with_path fold_defaults ([], (true, ct')) rt_sub
         in snd res
     in
     let ct_func (p, acc) _c =
