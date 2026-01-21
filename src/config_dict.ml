@@ -15,12 +15,12 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree mask path =
             then (p, (false, acc))
             else
             let rev_p = List.rev p in
-            let total_path = p' @ rev_p in
-            if Util.is_empty total_path
+            let sub_path = p' @ rev_p in
+            if Util.is_empty sub_path
             then (p, (continue, acc))
             else
-            if (Vytree.is_terminal_path[@alert "-exn"]) mask total_path &&
-               (Vytree.exists[@alert "-exn"]) ct total_path
+            if (Vytree.is_terminal_path[@alert "-exn"]) mask sub_path &&
+               (Vytree.exists[@alert "-exn"]) ct sub_path
             then (p, (false, acc))
             else
             let data = Vytree.data_of_node node in
@@ -34,11 +34,11 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree mask path =
                     match data.multi with
                     | true ->
                         let acc' =
-                            (Config_tree.set[@alert "-exn"]) acc total_path (Some v) AddValue
+                            (Config_tree.set[@alert "-exn"]) acc sub_path (Some v) AddValue
                         in (p, (continue, acc'))
                     | false ->
                         let acc' =
-                            (Config_tree.set[@alert "-exn"]) acc total_path (Some v) ReplaceValue
+                            (Config_tree.set[@alert "-exn"]) acc sub_path (Some v) ReplaceValue
                         in (p, (continue, acc'))
                 end
             | _ -> (p, (continue, acc))
