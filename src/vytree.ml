@@ -306,3 +306,18 @@ let fold_tree_with_path f (p', a) t =
         List.fold_left (fold_func f) (f (p, a) t) c in
         (Util.drop_first p), snd res
     in snd (fold_func f (p', a) t)
+
+let fold_tree_with_path_state f ((p', v), a) t =
+    let rec fold_func f ((p', v), a) t =
+    let p =
+        match name_of_node t with
+        | "" -> p'
+        | name -> name :: p'
+    in
+    let children = children_of_node t in
+    match children with
+    | [] -> (Util.drop_first p, Util.drop_first v), snd (f (p, a) t)
+    | c -> let res =
+        List.fold_left (fold_func f) (f (p, a) t) c in
+        (Util.drop_first p), snd res
+    in snd (fold_func f (p', a) t)
