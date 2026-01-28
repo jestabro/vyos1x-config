@@ -22,7 +22,7 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree mask path =
             let rev_p = List.rev p in
             let sub_path = p' @ rev_p in
             if Util.is_empty sub_path
-            then ((p, cont::c), acc)
+            then ((p, c), acc)
             else
             if (Vytree.is_terminal_path[@alert "-exn"]) mask sub_path &&
                (Vytree.exists[@alert "-exn"]) ct sub_path
