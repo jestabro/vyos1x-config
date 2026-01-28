@@ -3,7 +3,7 @@
 
 (*let config_dict ?(mangle=false) ?(no_tag_mangle=false)*)
 
-let hybrid_tree ?(with_first_node=true) ref_tree config_tree mask path =
+let hybrid_tree ?(with_first_node=true) ref_tree config_tree _mask path =
     let ct_at_path =
         Config_tree.get_subtree ~with_node:with_first_node config_tree path
     in
@@ -21,13 +21,18 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree mask path =
             else
             let rev_p = List.rev p in
             let sub_path = p' @ rev_p in
+            (*
             if Util.is_empty sub_path
-            then ((p, c), acc)
+            then ((p, cont::c), acc)
             else
             if (Vytree.is_terminal_path[@alert "-exn"]) mask sub_path &&
                (Vytree.exists[@alert "-exn"]) ct sub_path
             then ((p, false::c), acc)
             else
+            *)
+            print_endline
+            (Printf.sprintf "sub_path is %s; ref_path input is %s" (Util.string_of_list sub_path)
+            (Util.string_of_list (path @ p')));
             let data = Vytree.data_of_node node in
             match data.Reference_tree.node_type with
             | `Tag -> ((p, cont::c), acc)
