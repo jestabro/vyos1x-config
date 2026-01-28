@@ -7,47 +7,55 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree mask path =
     let ct_at_path =
         Config_tree.get_subtree ~with_node:with_first_node config_tree path
     in
+    let continue l =
+    match l with
+    | [] -> true
+    | x :: _ -> x
+    in
     let add_defaults ct p' =
         let ref_path = Reference_tree.refpath ref_tree (path @ p') in
         let relative_ref_tree = Reference_tree.get_subtree ref_tree ref_path in
-        let ref_tree_walk (p, (continue, acc)) node =
-            if not continue
-            then (p, (false, acc))
+        let ref_tree_walk ((p, c), acc) node =
+            let cont = continue c in
+            if not cont then ((p, false::c), acc)
             else
             let rev_p = List.rev p in
             let sub_path = p' @ rev_p in
             if Util.is_empty sub_path
-            then (p, (continue, acc))
+            then ((p, cont::c), acc)
             else
             if (Vytree.is_terminal_path[@alert "-exn"]) mask sub_path &&
                (Vytree.exists[@alert "-exn"]) ct sub_path
-            then (p, (false, acc))
+            then ((p, false::c), acc)
             else
             let data = Vytree.data_of_node node in
             match data.Reference_tree.node_type with
-            | `Tag -> (p, (false, acc))
+            | `Tag -> ((p, cont::c), acc)
             | `Leaf ->
                 begin
                 match data.default_value with
-                | None -> (p, (continue, acc))
+                | None -> ((p, cont::c), acc)
                 | Some v ->
+                    try
                     match data.multi with
                     | true ->
                         let acc' =
                             (Config_tree.set[@alert "-exn"]) acc sub_path (Some v) AddValue
-                        in (p, (continue, acc'))
+                        in ((p, cont::c), acc')
                     | false ->
                         let acc' =
                             (Config_tree.set[@alert "-exn"]) acc sub_path (Some v) ReplaceValue
-                        in (p, (continue, acc'))
+                        in ((p, cont::c), acc')
+                    with Config_tree.Useless_set | Config_tree.Duplicate_value ->
+                        ((p, cont::c), acc)
                 end
-            | _ -> (p, (continue, acc))
+            | _ -> ((p, cont::c), acc)
         in
-        let result =
-            Vytree.fold_tree_with_path ref_tree_walk ([], (true, ct)) relative_ref_tree
-        in snd result
+        Vytree.fold_tree_with_path_cont ref_tree_walk (([], []), ct) relative_ref_tree
     in
-    let config_tree_walk (p, acc) _ct =
+    let config_tree_walk (p, acc) ct =
+        let (data: Config_tree.config_node_data) = Vytree.data_of_node ct in
+        if data.tag then (p, acc) else
         let rev_p = List.rev p in
         let ct' = add_defaults acc rev_p
         in (p, ct')
