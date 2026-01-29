@@ -39,7 +39,7 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree _mask path =
             (Util.string_of_list ref_path));
             let data = Vytree.data_of_node node in
             match data.Reference_tree.node_type with
-            | `Tag -> ((p, cont::c), acc)
+            | `Tag -> ((p, false::c), acc)
             | `Leaf ->
                 begin
                 match data.default_value with
