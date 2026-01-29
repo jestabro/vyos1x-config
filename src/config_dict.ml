@@ -35,8 +35,8 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree _mask path =
             else
             *)
             print_endline
-            (Printf.sprintf "sub_path is %s; ref_path is %s" (Util.string_of_list sub_path)
-            (Util.string_of_list ref_path));
+            (Printf.sprintf "sub_path is %s; ref_path input is %s" (Util.string_of_list sub_path)
+            (Util.string_of_list p'));
             let data = Vytree.data_of_node node in
             match data.Reference_tree.node_type with
             | `Tag -> ((p, cont::c), acc)
