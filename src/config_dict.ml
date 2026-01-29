@@ -7,18 +7,18 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree _mask path =
     let ct_at_path =
         Config_tree.get_subtree ~with_node:with_first_node config_tree path
     in
-    let rt_at_path =
-        Reference_tree.get_subtree ~with_node:with_first_node ref_tree path
-    in
     let continue l =
     match l with
     | [] -> true
     | x :: _ -> x
     in
     let add_defaults ct p' =
-        let ref_path = Reference_tree.refpath rt_at_path p'
+        let ref_path =
+            match with_first_node with
+            | false -> Reference_tree.refpath ref_tree (path @ p')
+            | true -> Reference_tree.refpath ref_tree (path @ (Util.drop_first p'))
         in
-        let relative_ref_tree = Reference_tree.get_subtree rt_at_path ref_path in
+        let relative_ref_tree = Reference_tree.get_subtree ref_tree ref_path in
         let ref_tree_walk ((p, c), acc) node =
             let cont = continue c in
             if not cont then ((p, false::c), acc)
@@ -36,7 +36,7 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree _mask path =
             *)
             print_endline
             (Printf.sprintf "sub_path is %s; ref_path input is %s" (Util.string_of_list sub_path)
-            (Util.string_of_list p'));
+            (Util.string_of_list ref_path));
             let data = Vytree.data_of_node node in
             match data.Reference_tree.node_type with
             | `Tag -> ((p, cont::c), acc)
