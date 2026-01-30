@@ -16,7 +16,8 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree _mask path =
         let ref_path =
             match with_first_node with
             | false -> Reference_tree.refpath ref_tree (path @ p')
-            | true -> Reference_tree.refpath ref_tree (path @ (Util.drop_first p'))
+            | true -> Reference_tree.refpath ref_tree ((Util.drop_last path) @ p')
+            (* this must be drop last *)
         in
         let relative_ref_tree = Reference_tree.get_subtree ref_tree ref_path in
         let ref_tree_walk ((p, c), acc) node =
