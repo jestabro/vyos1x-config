@@ -307,6 +307,12 @@ let fold_tree_with_path f (p', a) t =
         (Util.drop_first p), snd res
     in snd (fold_func f (p', a) t)
 
+(** Allow function called in fold to maintain a list of values for each
+    depth level of tree. A simple example is for the the function to cons a
+    boolean value at each call of the depth-first traversal; at the return
+    to local root, the value for that level is restored.
+ *)
+
 let fold_tree_with_path_cont f ((p', v), a) t =
     let rec fold_func f ((p', v), a) t =
     let p =
