@@ -7,13 +7,6 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree mask path =
     let ct_at_path =
         Config_tree.get_subtree ~with_node:with_first_node config_tree path
     in
-    let ref_path = Reference_tree.refpath ref_tree path in
-    let rt_at_path =
-        Reference_tree.get_subtree ~with_node:with_first_node ref_tree ref_path
-    in
-    let mask_at_path =
-        Reference_tree.get_subtree ~with_node:with_first_node mask ref_path
-    in
     let continue l =
         match l with
         | [] -> true
@@ -31,12 +24,12 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree mask path =
             if not cont then ((p, false::c), acc)
             else
             let rev_p = List.rev p in
+
             let sub_path = p' @ rev_p in
 
-            let ref_sub_path = Reference_tree.refpath rt_at_path sub_path in
-            if not (Util.is_empty sub_path) &&
-                (Vytree.is_terminal_path[@alert "-exn"]) mask_at_path ref_sub_path &&
-                (Vytree.exists[@alert "-exn"]) ct sub_path
+            if not (Util.is_empty rev_p) &&
+                (Vytree.is_terminal_path[@alert "-exn"]) mask (ref_path @ rev_p) &&
+                not ((Vytree.exists[@alert "-exn"]) ct sub_path)
             then ((p, false::c), acc)
 
             else
