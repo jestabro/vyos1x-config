@@ -71,7 +71,7 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree mask path =
     in Vytree.fold_tree_with_path config_tree_walk ([], ct_at_path) ct_at_path
 
 
-let config_dict ?(with_first_node=true) rt ct path =
-    let mask = Reference_tree.default in
+let config_dict ?(with_first_node=true) rt ct mask path =
+(*    let mask = Reference_tree.default in*)
     let ht =  hybrid_tree ~with_first_node rt ct mask path in
     Config_tree.render_json ht
