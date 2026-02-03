@@ -41,6 +41,9 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree mask path =
             match data.Reference_tree.node_type with
             | `Tag -> ((p, false::c), acc)
             | `Leaf ->
+                (* check existence before setting *)
+                if (Vytree.exists[@alert "-exn"]) acc sub_path then ((p, cont::c), acc)
+                else
                 begin
                 match data.default_value with
                 | None -> ((p, cont::c), acc)
