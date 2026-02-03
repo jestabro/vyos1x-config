@@ -1,9 +1,22 @@
 (** The goal here is to produce a JSON rendering to load into a Python dict.
+    By abuse of language, the entry point is named config_dict, the Python
+    wrapper for which will perform the json.loads().
+
+    The idea here is simple, and abstracts the construction in vyos-1x using
+    the xml_ref module:
+        fold over the config tree 'a fold over the reference tree'
+    The required details to make this work:
+        (1) skip tag nodes in the config tree, so as to call the
+        corresponding reference tree below the tag node value in the
+        depth-first fold.
+        (2) use a modified fold_tree_with_path to store a boolean for each
+        level, in order to ignore non-sensical (non-existent tag node value)
+        or excluded (masked) reference paths below a given level.
+        (3) appropriate use of local vs global paths in the respective
+        trees.
  *)
 
-(*let config_dict ?(mangle=false) ?(no_tag_mangle=false)*)
-
-let hybrid_tree ?(with_first_node=true) ref_tree config_tree mask path =
+let tree_with_defaults ?(with_first_node=true) ref_tree config_tree mask path =
     let ct_at_path =
         Config_tree.get_subtree ~with_node:with_first_node config_tree path
     in
@@ -24,19 +37,12 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree mask path =
             if not cont then ((p, false::c), acc)
             else
             let rev_p = List.rev p in
-
             let sub_path = p' @ rev_p in
-
             if not (Util.is_empty rev_p) &&
                 (Vytree.is_terminal_path[@alert "-exn"]) mask (ref_path @ rev_p) &&
                 not ((Vytree.exists[@alert "-exn"]) ct sub_path)
             then ((p, false::c), acc)
-
             else
-    (*        print_endline
-            (Printf.sprintf "sub_path is %s; ref_path input is %s" (Util.string_of_list sub_path)
-            (Util.string_of_list ref_path));
-            *)
             let data = Vytree.data_of_node node in
             match data.Reference_tree.node_type with
             | `Tag -> ((p, false::c), acc)
@@ -48,10 +54,8 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree mask path =
                 | None -> ((p, cont::c), acc)
                 | Some v ->
                     let acc' =
-                        (* The use of ReplaceValue is simply as the faster
-                           of the two alternatives (add/replace): this
-                           branch is only if path does not exist.
-                         *)
+                        (* The use of ReplaceValue is simply as the faster of the two
+                           alternatives (add/replace): path does not exist in branch. *)
                         (Config_tree.set[@alert "-exn"]) acc sub_path (Some v) ReplaceValue
                     in ((p, cont::c), acc')
                 end
@@ -68,7 +72,12 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree mask path =
     in Vytree.fold_tree_with_path config_tree_walk ([], ct_at_path) ct_at_path
 
 
-let config_dict ?(with_first_node=true) rt ct mask path =
-(*    let mask = Reference_tree.default in*)
-    let ht =  hybrid_tree ~with_first_node rt ct mask path in
+(* Simple check of config dict result. Modifications 'multi_to_list',
+   'key_mangling' are to be added in an extended JSONRenderer *)
+let config_dict ?(with_defaults=true) ?(with_first_node=true) rt ct mask path =
+    let ht =
+        match with_defaults with
+        | true -> tree_with_defaults ~with_first_node rt ct mask path
+        | false -> Config_tree.get_subtree ~with_node:with_first_node ct path
+    in
     Config_tree.render_json ht
