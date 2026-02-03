@@ -41,25 +41,19 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree mask path =
             match data.Reference_tree.node_type with
             | `Tag -> ((p, false::c), acc)
             | `Leaf ->
-                (* check existence before setting *)
                 if (Vytree.exists[@alert "-exn"]) acc sub_path then ((p, cont::c), acc)
                 else
                 begin
                 match data.default_value with
                 | None -> ((p, cont::c), acc)
                 | Some v ->
-                    try
-                    match data.multi with
-                    | true ->
-                        let acc' =
-                            (Config_tree.set[@alert "-exn"]) acc sub_path (Some v) AddValue
-                        in ((p, cont::c), acc')
-                    | false ->
-                        let acc' =
-                            (Config_tree.set[@alert "-exn"]) acc sub_path (Some v) ReplaceValue
-                        in ((p, cont::c), acc')
-                    with Config_tree.Useless_set | Config_tree.Duplicate_value ->
-                        ((p, cont::c), acc)
+                    let acc' =
+                        (* The use of ReplaceValue is simply as the faster
+                           of the two alternatives (add/replace): this
+                           branch is only if path does not exist.
+                         *)
+                        (Config_tree.set[@alert "-exn"]) acc sub_path (Some v) ReplaceValue
+                    in ((p, cont::c), acc')
                 end
             | _ -> ((p, cont::c), acc)
         in
