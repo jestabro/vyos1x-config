@@ -3,21 +3,27 @@
 
 (*let config_dict ?(mangle=false) ?(no_tag_mangle=false)*)
 
-let hybrid_tree ?(with_first_node=true) ref_tree config_tree _mask path =
+let hybrid_tree ?(with_first_node=true) ref_tree config_tree mask path =
     let ct_at_path =
         Config_tree.get_subtree ~with_node:with_first_node config_tree path
     in
+    let ref_path = Reference_tree.refpath ref_tree path in
+    let rt_at_path =
+        Reference_tree.get_subtree ~with_node:with_first_node ref_tree ref_path
+    in
+    let mask_at_path =
+        Reference_tree.get_subtree ~with_node:with_first_node mask ref_path
+    in
     let continue l =
-    match l with
-    | [] -> true
-    | x :: _ -> x
+        match l with
+        | [] -> true
+        | x :: _ -> x
     in
     let add_defaults ct p' =
         let ref_path =
             match with_first_node with
             | false -> Reference_tree.refpath ref_tree (path @ p')
             | true -> Reference_tree.refpath ref_tree ((Util.drop_last path) @ p')
-            (* this must be drop last *)
         in
         let relative_ref_tree = Reference_tree.get_subtree ref_tree ref_path in
         let ref_tree_walk ((p, c), acc) node =
@@ -26,15 +32,14 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree _mask path =
             else
             let rev_p = List.rev p in
             let sub_path = p' @ rev_p in
-            (*
-            if Util.is_empty sub_path
-            then ((p, cont::c), acc)
-            else
-            if (Vytree.is_terminal_path[@alert "-exn"]) mask sub_path &&
-               (Vytree.exists[@alert "-exn"]) ct sub_path
+
+            let ref_sub_path = Reference_tree.refpath rt_at_path sub_path in
+            if not (Util.is_empty sub_path) &&
+                (Vytree.is_terminal_path[@alert "-exn"]) mask_at_path ref_sub_path &&
+                (Vytree.exists[@alert "-exn"]) ct sub_path
             then ((p, false::c), acc)
+
             else
-            *)
     (*        print_endline
             (Printf.sprintf "sub_path is %s; ref_path input is %s" (Util.string_of_list sub_path)
             (Util.string_of_list ref_path));
@@ -74,6 +79,6 @@ let hybrid_tree ?(with_first_node=true) ref_tree config_tree _mask path =
 
 
 let config_dict ?(with_first_node=true) rt ct path =
-    let mask = Config_tree.default in
+    let mask = Reference_tree.default in
     let ht =  hybrid_tree ~with_first_node rt ct mask path in
     Config_tree.render_json ht
