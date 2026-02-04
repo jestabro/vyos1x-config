@@ -65,6 +65,7 @@ let tree_with_defaults ?(with_first_node=true) ref_tree config_tree mask path =
     in
     let config_tree_walk (p, acc) ct =
         let (data: Config_tree.config_node_data) = Vytree.data_of_node ct in
+        if with_first_node && Util.is_empty p then (p, acc) else
         if data.tag then (p, acc) else
         let rev_p = List.rev p in
         let ct' = add_defaults acc rev_p
