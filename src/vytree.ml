@@ -291,6 +291,41 @@ let is_terminal_path node path =
         | [] -> true
         | _ -> false
     with Nonexistent_path -> false
+(*
+let rec fold_left_cont (k: 'acc -> 'acc) (f: 'acc -> 'b t -> 'acc) acc n =
+    let acc' = f acc n in
+    let remaining = children_of_node n in
+    match remaining with
+    | [] -> k acc'
+    | x :: xs -> fold_left_cont k f (f acc' x) xs
+
+let rec fold_left_cont (k: 'acc -> 'acc) (f: 'acc -> 'b t -> 'acc) acc lst =
+    match lst with
+    | [] -> k acc
+    | x :: xs -> fold_left_cont k f (f acc x) xs
+*)
+let fold_tree_with_path_cont f (p', a) t =
+    let rec fold_func f (p', a) t =
+    let p =
+        match name_of_node t with
+        | "" -> p'
+        | name -> name :: p'
+    in
+    let k (p, a) =
+        (Util.drop_first p, a)
+    in
+    let children = children_of_node t in
+    let acc = f (p, a) t in
+    let res =
+        Util.fold_left_cont k (fold_func f) acc children
+    in snd res
+
+    match children with
+    | [] -> (Util.drop_first p), snd (f (p, a) t)
+    | c -> let res =
+        List.fold_left (fold_func f) (f (p, a) t) c in
+        (Util.drop_first p), snd res
+    in snd (fold_func f (p', a) t)
 
 let fold_tree_with_path f (p', a) t =
     let rec fold_func f (p', a) t =

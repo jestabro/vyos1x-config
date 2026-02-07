@@ -177,6 +177,11 @@ let flag path =
     in
     List.mapi (fun k _ -> aux path k) path
 
+let rec fold_left_cont (k: 'a -> 'a) (f: 'a -> 'b -> 'a) acc (lst: 'b list) =
+    match lst with
+    | [] -> k acc
+    | x :: xs -> fold_left_cont k f (f acc x) xs
+
 
 exception End_of_read of in_channel
 

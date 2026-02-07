@@ -38,6 +38,8 @@ val is_sublist : 'a list -> 'a list -> bool
 
 val flag : 'a list -> 'a list list
 
+val fold_left_cont: ('a -> 'a) -> ('a -> 'b -> 'a) -> 'a -> 'b list -> 'a
+
 
 exception End_of_read of in_channel
 
