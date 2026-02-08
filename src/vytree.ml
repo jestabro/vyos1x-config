@@ -316,6 +316,9 @@ let fold_tree_with_path_cont f (p', a) t =
         in
         let children = children_of_node t in
         let acc = f (p, a) t in
+(*        match children with
+        | [] -> k acc
+        | x :: xs -> fold_func f (f acc x) xs *)
         Util.fold_left_cont k (fold_func f) acc children
     in snd (fold_func f (p', a) t)
 
