@@ -304,6 +304,7 @@ let rec fold_left_cont (k: 'acc -> 'acc) (f: 'acc -> 'b t -> 'acc) acc lst =
     | [] -> k acc
     | x :: xs -> fold_left_cont k f (f acc x) xs
 *)
+(*
 let fold_tree_with_path_cont f (p', a) t =
     let k (p, a) =
         (Util.drop_first p, a)
@@ -318,7 +319,9 @@ let fold_tree_with_path_cont f (p', a) t =
         let acc = f (p, a) t in
         Util.fold_left_cont k (fold_func f) acc children
     in snd (fold_func f (p', a) t)
-
+*)
+(* Nope, not quite: *)
+(*
 let fold_tree_with_path_cont f (p', a) t =
     let k (p, a) =
         (Util.drop_first p, a)
@@ -331,17 +334,13 @@ let fold_tree_with_path_cont f (p', a) t =
         in
         let children = children_of_node t in
         let acc = f (p, a) t in
-        fold_func_list f acc children k
-(*        match children with
-        | [] -> k acc
-        | x :: xs -> fold_func_list f xs k (tl' ->  (fold_func f acc x) |> tl')*)
-    and rec fold_func_list f acc l k =
+        fold_func_list f acc children
+    and fold_func_list f acc l k =
         match l with
         | [] -> k acc
-        | x :: xs -> fold_func_list f xs (fun tl' -> k (fold_func f acc x) |> tl'))
-(*        Util.fold_left_cont k (fold_func f) acc children *)
-    in snd (fold_func f (p', a) t)
-
+        | x :: xs -> fold_func_list f (fold_func f acc x) xs
+    in snd ((fold_func[@tailcall]) f (p', a) t)
+*)
 let fold_tree_with_path f (p', a) t =
     let rec fold_func f (p', a) t =
     let p =
