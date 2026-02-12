@@ -95,7 +95,20 @@ val move : 'a t -> string list -> position -> 'a t
 val is_terminal_path : 'a t -> string list -> bool
 [@@alert exn "Vytree.Empty_path"]
 
-(*val fold_tree_with_path_cont: (string list * 'acc -> 'b t -> string list * 'acc) -> string list * 'acc -> 'b t -> 'acc*)
+val fold_tree_with_path_cont : (string list * 'acc -> 'b t -> string list * 'acc) -> string list * 'acc -> 'b t -> string list * 'acc
+
+(*val fold_tree_with_path_cont_two : (string list * 'acc -> 'b t -> string
+list * 'acc) -> string list * 'acc -> 'b t -> string list * 'acc *)
+
+val fold_tree_with_path_cont_two : (string list * 'acc -> 'b t -> string list * 'acc) -> string list * 'acc -> 'b t -> 'acc
+
+val test_fold_one : 'a t -> string list * string list
+
+(*val test_fold_two : 'a t -> string list * string list*)
+
+val test_fold_two : 'a t -> string list
+
+val test_fold_three : 'a t -> string list
 
 val fold_tree_with_path: (string list * 'acc -> 'b t -> string list * 'acc) -> string list * 'acc -> 'b t -> 'acc
 

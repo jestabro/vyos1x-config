@@ -182,7 +182,7 @@ let rec fold_left_cont (k: 'a -> 'a) (f: 'a -> 'b -> 'a) acc (lst: 'b list) =
     | [] -> k acc
     | x :: xs -> fold_left_cont k f (f acc x) xs
 
-let fold_left_k (f: 'a -> 'b -> 'a) (acc: 'a) (lst: 'b list) =
+let fold_k (f: 'a -> 'b -> 'a) (acc: 'a) (lst: 'b list) =
     let rec fold_func lst k =
         match lst with
         | [] -> k acc

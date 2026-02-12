@@ -40,7 +40,7 @@ val flag : 'a list -> 'a list list
 
 val fold_left_cont: ('a -> 'a) -> ('a -> 'b -> 'a) -> 'a -> 'b list -> 'a
 
-val fold_left_k: ('a -> 'b -> 'a) -> 'a -> 'b list -> 'a
+val fold_k: ('a -> 'b -> 'a) -> 'a -> 'b list -> 'a
 
 
 exception End_of_read of in_channel

@@ -341,6 +341,32 @@ let fold_tree_with_path_cont f (p', a) t =
         | x :: xs -> fold_func_list f (fold_func f acc x) xs
     in snd ((fold_func[@tailcall]) f (p', a) t)
 *)
+
+let fold_tree_with_path_cont f (p', a) t =
+(*    let k (p, a) =
+        (Util.drop_first p, a)
+    in *)
+    let rec fold_func f (p', a) t =
+        let p =
+            match name_of_node t with
+            | "" -> p'
+            | name -> name :: p'
+        in
+        let children = children_of_node t in
+        let acc = f (p, a) t in
+        fold_func_list f acc children
+    and fold_func_list f acc l =
+        match l with
+        | [] -> (Util.drop_first (fst acc), snd acc)
+        | x :: xs -> (fold_func_list[@tailcall]) f (fold_func f acc x) xs
+    in
+    fold_func f (p', a) t
+
+let test_fold_one t =
+    let func (p, a) node = print_endline (name_of_node node); (p, a)
+    in
+    fold_tree_with_path_cont func ([], []) t
+
 let fold_tree_with_path f (p', a) t =
     let rec fold_func f (p', a) t =
     let p =
@@ -355,6 +381,34 @@ let fold_tree_with_path f (p', a) t =
         List.fold_left (fold_func f) (f (p, a) t) c in
         (Util.drop_first p), snd res
     in snd (fold_func f (p', a) t)
+
+let _fold_tree_with_path_cont_two f (p', a) t =
+    let rec fold_func f (p', a) t =
+    let p =
+        match name_of_node t with
+        | "" -> p'
+        | name -> name :: p'
+    in
+    let children = children_of_node t in
+    match children with
+    | [] -> (Util.drop_first p), snd (f (p, a) t)
+    | c -> let res =
+        List.fold_left ((fold_func[@tailcall]) f) (f (p, a) t) c in
+        (Util.drop_first p), snd res
+    in fold_func f (p', a) t
+
+let fold_tree_with_path_cont_two f (p', a) t =
+    snd (_fold_tree_with_path_cont_two f (p', a) t)
+
+let test_fold_two t =
+    let func (p, a) node = print_endline (name_of_node node); (p, a)
+    in
+    fold_tree_with_path_cont_two func ([], []) t
+
+let test_fold_three t =
+    let func (p, a) node = print_endline (name_of_node node); (p, a)
+    in
+    fold_tree_with_path func ([], []) t
 
 (** Allow function called in fold to maintain a list of values for each
     depth level of tree. A simple example is for the the function to cons a
@@ -380,3 +434,12 @@ let fold_tree_with_path_and_list f ((p', v), a) t =
         List.fold_left (fold_func f) (f ((p, v), a) t) c in
         (Util.drop_first p, Util.drop_first (snd (fst res))), snd res
     in snd (fold_func f ((p', v), a) t)
+
+let reverse_walk f ((p, cll), a) t =
+    let next_child (p, cll) =
+        match cll with
+        | [] -> done
+        | cl :: cll' ->
+            match cl with
+            | [] -> backtrack (p, cll)
+            | c :: cl' -> (drop_first p, cl')
