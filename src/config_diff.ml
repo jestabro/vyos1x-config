@@ -823,7 +823,7 @@ let subtree_from_partial reftree ctree result path =
     let clone_children tree p =
         let children = Vytree.list_children ((Vytree.get[@alert "-exn"]) ctree p) in
         let paths = List.map (fun n -> p @ [n]) children in
-        List.fold_left clone_node tree paths
+        List.fold_left (clone_node ~recurse:true) tree paths
     in
     let rec aux acc path_done p =
         if not (check_reftree (path_done @ p)) then
@@ -844,10 +844,11 @@ let subtree_from_partial reftree ctree result path =
                 in
                 let () = print_endline s in
                 let p' = path_done @ [h] in
-                if check_ctree p' then
+                if check_ctree p' then aux (clone_node acc p') p' tl
+(*                if check_ctree p' then
                     match tl with
                     | [] -> aux (clone_node ~recurse:true acc p') p' tl
-                    | _ -> aux (clone_node acc p') p' tl
+                    | _ -> aux (clone_node acc p') p' tl *)
                 else
                     if (Config_tree.is_tag[@alert "-exn"]) ctree path_done then
                     let children =
@@ -868,8 +869,9 @@ let subtree_from_partial reftree ctree result path =
                     Printf.sprintf "JSE case 3 path_done: %s p: %s" (Util.string_of_list path_done) (Util.string_of_list p)
                 in
                 let () = print_endline s in
-                if (Config_tree.is_tag[@alert "-exn"]) ctree path_done then clone_children acc path_done
-                else acc
+                clone_children acc path_done
+(*                if (Config_tree.is_tag[@alert "-exn"]) ctree path_done then clone_children acc path_done
+                else acc*)
     in aux result [] path
 
 
