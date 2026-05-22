@@ -811,14 +811,14 @@ let subtree_from_partial reftree ctree result path =
         | [] -> false
         | _ -> (Vytree.exists[@alert "-exn"]) ctree p
     in
-    let clone_node tree p =
+    let clone_node ?(recurse=false) tree p =
         if (Vytree.exists[@alert "-exn"]) tree p then
             tree
         else
         if not ((Vytree.exists[@alert "-exn"]) ctree p) then
             tree
         else
-            clone ~recurse:false ctree tree p
+            clone ~recurse:recurse ctree tree p
     in
     let clone_children tree p =
         let children = Vytree.list_children ((Vytree.get[@alert "-exn"]) ctree p) in
@@ -866,7 +866,7 @@ let subtree_from_partial reftree ctree result path =
                 in
                 let () = print_endline s in
                 if (Config_tree.is_tag[@alert "-exn"]) ctree path_done then clone_children acc path_done
-                else acc
+                else clone_node ~recurse:true acc path_done
     in aux result [] path
 
 
