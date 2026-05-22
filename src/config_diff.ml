@@ -844,7 +844,10 @@ let subtree_from_partial reftree ctree result path =
                 in
                 let () = print_endline s in
                 let p' = path_done @ [h] in
-                if check_ctree p' then aux (clone_node acc p') p' tl
+                if check_ctree p' then
+                    match tl with
+                    | [] -> aux (clone_node ~recurse:true acc p') p' tl
+                    | _ -> aux (clone_node acc p') p' tl
                 else
                     if (Config_tree.is_tag[@alert "-exn"]) ctree path_done then
                     let children =
@@ -866,7 +869,7 @@ let subtree_from_partial reftree ctree result path =
                 in
                 let () = print_endline s in
                 if (Config_tree.is_tag[@alert "-exn"]) ctree path_done then clone_children acc path_done
-                else clone_node ~recurse:true acc path_done
+                else acc
     in aux result [] path
 
 
