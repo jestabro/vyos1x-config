@@ -748,6 +748,10 @@ let mask_func_exclusive ?recurse:_ (path : string list) (Diff_tree res) (m : cha
             let () = print_endline s in
             Diff_tree (res)
     in
+(*    let func2 ?(recurse=recurse) p =
+        let res
+        if recurse then
+            *)
     match m with
     | Added -> Diff_tree (res)
     | Subtracted -> Diff_tree (res)
@@ -827,10 +831,18 @@ let subtree_from_partial reftree ctree result path =
         else
         match path_done, p with
         | [], h :: tl ->
+                let s =
+                    Printf.sprintf "JSE case 1 path_done: %s p: %s" (Util.string_of_list path_done) (Util.string_of_list p)
+                in
+                let () = print_endline s in
                 if check_reftree [h] then aux (clone_node acc [h]) [h] tl
                 else
                 raise (Malformed_path (Util.string_of_list p))
         | _, h :: tl ->
+                let s =
+                    Printf.sprintf "JSE case 2 path_done: %s p: %s" (Util.string_of_list path_done) (Util.string_of_list p)
+                in
+                let () = print_endline s in
                 let p' = path_done @ [h] in
                 if check_ctree p' then aux (clone_node acc p') p' tl
                 else
@@ -849,6 +861,10 @@ let subtree_from_partial reftree ctree result path =
                 (* [h] is a tag_value not present in the config tree *)
                 raise (Malformed_path (Util.string_of_list p'))
         | _, [] ->
+                let s =
+                    Printf.sprintf "JSE case 3 path_done: %s p: %s" (Util.string_of_list path_done) (Util.string_of_list p)
+                in
+                let () = print_endline s in
                 if (Config_tree.is_tag[@alert "-exn"]) ctree path_done then clone_children acc path_done
                 else acc
     in aux result [] path
