@@ -736,19 +736,34 @@ let mask_func_exclusive ?recurse:_ (path : string list) (Diff_tree res) (m : cha
        alert exn Vytree.is_terminal_path:
         [Vytree.Empty_path] not possible in pattern match case
      *)
+    let func p =
+        if ((Vytree.is_terminal_path[@alert "-exn"]) res.right p) then
+            let tmp = (Vytree.delete[@alert "-exn"]) res.left p in
+            let left' = (Config_tree.prune_delete[@alert "-exn"]) tmp p in
+            let s = Printf.sprintf "JSE yes terminal p %s" (Util.string_of_list p) in
+            let () = print_endline s in
+            Diff_tree {res with left = left'}
+        else
+            let s = Printf.sprintf "JSE nope not terminal p %s" (Util.string_of_list p) in
+            let () = print_endline s in
+            Diff_tree (res)
+    in
     match m with
     | Added -> Diff_tree (res)
     | Subtracted -> Diff_tree (res)
-    | Unchanged | Updated _ ->
+    | Unchanged ->
         begin
-            match path with
-            | [] -> Diff_tree(res)
-            | _ ->
-                if ((Vytree.is_terminal_path[@alert "-exn"]) res.right path) then
-                    let tmp = (Vytree.delete[@alert "-exn"]) res.left path in
-                    let left' = (Config_tree.prune_delete[@alert "-exn"]) tmp path in
-                    Diff_tree {res with left = left'}
-                else Diff_tree (res)
+        match path with
+        | [] -> Diff_tree(res)
+        | _ ->
+        let () = print_endline "JSE in Unchanged" in func path
+        end
+    | Updated _ ->
+        begin
+        match path with
+        | [] -> Diff_tree(res)
+        | _ ->
+        let () = print_endline "JSE in Updated" in func path
         end
 
 (* call recursive diff with mask_func; mask applied on right *)
