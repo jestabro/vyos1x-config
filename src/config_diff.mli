@@ -1,4 +1,4 @@
-type change = Unchanged | Added | Subtracted | Updated of string list
+type change = Unchanged | Added | Subtracted | Updated of Config_tree.config_node_data
 
 module Diff_tree : sig
     type t = { left: Config_tree.t;

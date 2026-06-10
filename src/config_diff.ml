@@ -1,4 +1,4 @@
-type change = Unchanged | Added | Subtracted | Updated of string list
+type change = Unchanged | Added | Subtracted | Updated of Config_tree.config_node_data
 
 exception Incommensurable
 exception Empty_comparison
@@ -141,8 +141,8 @@ let rec diff (path : string list) (f : 'a diff_func) (res: 'a diff_result) ((lef
     | Some left_node, Some right_node when left_node = right_node ->
         f ~recurse:true path res Unchanged
     | Some left_node, Some right_node when left_node ^~ right_node ->
-        let values = (data_of right_node).values in
-        f ~recurse:true path res (Updated values)
+        let data = data_of right_node in
+        f ~recurse:true path res (Updated data)
     | Some left_node, Some right_node ->
         let ret = f ~recurse:false path res Unchanged in
         List.fold_left (diff path f) ret (opt_zip left_node right_node)
@@ -205,8 +205,9 @@ let build_trees ?(recurse=true) (path : string list) (Diff_tree res) (m : change
          del = clone ~recurse:false ~set_values:(Some []) res.left res.del path; }
     | Unchanged ->
         Diff_tree {res with inter = clone ~recurse:recurse res.left res.inter path; }
-    | Updated v ->
+    | Updated data ->
             (* if in this case, node at path is guaranteed to exist *)
+            let v = data.values in
             let ov = (Config_tree.get_values[@alert "-exn"]) res.left path in
             match ov, v with
             | [_], [_] -> Diff_tree {res with sub = clone res.left res.sub path;
@@ -404,7 +405,8 @@ let unified_diff ?(cmds=false) ?recurse:_ (path : string list) (Diff_compare res
             in
             Diff_compare { res with ppath = ppath_l; udiff = str_diff; }
     | Unchanged -> Diff_compare (res)
-    | Updated v ->
+    | Updated data ->
+            let v = data.values in
             let ov = (Config_tree.get_values[@alert "-exn"]) res.left path in
             match ov, v with
             | [_], [_] ->
@@ -626,7 +628,8 @@ let config_diff (rt : Reference_tree.t) ?(recurse=true) (path : string list) (Di
                 let rev_diff = diff_str ^ annotate_rendered m rendered in
                 Diff_show {res with config_diff = rev_diff; open_blocks = rev_blocks;}
         end
-    | Updated v ->
+    | Updated data ->
+        let v = data.values in
         let refp =
             (Reference_tree.refpath[@alert "-exn"]) rt (res.base_path @ path) in
         let multi = (Reference_tree.is_multi[@alert "-exn"]) rt refp in
