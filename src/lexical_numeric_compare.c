@@ -19,8 +19,6 @@ CAMLprim value caml_lex_numeric_compare(value str1, value str2) {
 
     while (*s1 && *s2) {
         if (isdigit((unsigned char)*s1) && isdigit((unsigned char)*s2)) {
-            while (*s1 == '0') s1++;
-            while (*s2 == '0') s2++;
             const char *ps1 = s1, *ps2 = s2;
 
             while (isdigit((unsigned char)*s1)) s1++;
