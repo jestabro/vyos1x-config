@@ -95,7 +95,8 @@ module Diff_compare = struct
                 in
                 { res with ppath = ppath_l; udiff = str_diff; }
         | Unchanged -> res
-        | Updated v ->
+        | Updated data ->
+                let v = data.values in
                 let ov = (Config_tree.get_values[@alert "-exn"]) res.left path in
                 match ov, v with
                 | [_], [_] ->
