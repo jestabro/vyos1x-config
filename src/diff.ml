@@ -59,13 +59,13 @@ module Diff (P: Place) = struct
         let path = update_path path left_node_opt right_node_opt in
         match left_node_opt, right_node_opt with
         | None, None -> raise Empty_comparison
-        | Some _, None -> P.diff_func path res Subtracted
-        | None, Some _ -> P.diff_func path res Added
+        | Some _, None -> P.diff_func ~descent:true path res Subtracted
+        | None, Some _ -> P.diff_func ~descent:true path res Added
         | Some left_node, Some right_node when left_node = right_node ->
             P.diff_func ~descent:true path res Unchanged
         | Some left_node, Some right_node when left_node ^~ right_node ->
             let values = (data_of right_node).values in
-            P.diff_func path res (Updated values)
+            P.diff_func ~descent:true path res (Updated values)
         | Some left_node, Some right_node ->
             let ret = P.diff_func ~descent:false path res Unchanged in
             List.fold_left (diff_calc path) ret (opt_zip left_node right_node)
