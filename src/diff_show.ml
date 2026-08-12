@@ -160,7 +160,8 @@ module Diff_show = struct
                     let rev_diff = diff_str ^ annotate_rendered m rendered in
                     {res with config_diff = rev_diff; open_blocks = rev_blocks;}
             end
-        | Updated v ->
+        | Updated data ->
+            let v = data.values in
             let refp =
                 (Reference_tree.refpath[@alert "-exn"]) res.rt (res.base_path @ path) in
             let multi = (Reference_tree.is_multi[@alert "-exn"]) res.rt refp in
