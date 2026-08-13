@@ -993,6 +993,31 @@ let validate_tree dir rt ct =
     out
 
 
+let get_multi_nodes ?(tag_value_placeholder="") rt =
+    let func ((p, v), (acc, rtree)) rt =
+        match p with
+        | [] -> ((p, v), (acc, rtree))
+        | _ ->
+        let p' = List.rev p in
+        let v = (Vytree.name_of_node rt) :: v in
+        let v =
+            if is_tag rtree p' then
+                match tag_value_placeholder with
+                | "" -> v
+                | _ as s -> s :: v
+            else
+                v
+        in
+        if is_multi rtree p' then
+            ((p, v), (List.rev v :: acc, rtree))
+        else
+            ((p, v), (acc, rtree))
+    in
+    let res = Vytree.fold_tree_with_path_and_list func (([], []), ([], rt)) rt in
+    match res with
+    | (ret, _) -> [%to_yojson: string list list] (List.rev ret) |> Yojson.Safe.to_string
+
+
 module JSONRenderer =
 struct
     let render_data data =

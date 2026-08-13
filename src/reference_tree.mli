@@ -139,4 +139,6 @@ val get_ceil_data : (ref_node_data -> string option) -> t -> string list -> stri
 [@@alert exn "Vytree.Empty_path"]
 [@@alert exn "Vytree.Nonexistent_path"]
 
+val get_multi_nodes : ?tag_value_placeholder:string -> t -> string
+
 val render_json : t -> string
