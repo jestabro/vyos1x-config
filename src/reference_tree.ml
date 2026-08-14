@@ -283,7 +283,7 @@ let rec insert_from_xml basepath reftree xml =
             let children = find_xml_child "children" xml in
             (match children with
              | None -> raise (Bad_interface_definition (Printf.sprintf "Node %s has no children" name))
-             | Some c ->  List.fold_left (insert_from_xml path) new_tree (Xml.children c)))
+             | Some c ->  List.fold_left (insert_from_xml path) new_tree (List.rev (Xml.children c))))
     | _ -> raise (Bad_interface_definition "PCData not allowed here")
 
 let load_from_xml reftree file =
@@ -293,7 +293,7 @@ let load_from_xml reftree file =
     let xml_to_reftree xml reftree =
         match xml with
         | Xml.Element ("interfaceDefinition", _, children) ->
-            List.fold_left (insert_from_xml []) reftree children
+            List.fold_left (insert_from_xml []) reftree (List.rev children)
         | _ -> raise (Bad_interface_definition "File should begin with <interfaceDefinition>")
     in
     try
