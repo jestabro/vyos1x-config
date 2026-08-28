@@ -52,6 +52,9 @@ let subtree_from_partial ?(descent=true) reftree ctree result path =
                 let p' = path_done @ [h] in
                 if check_ctree p' then aux (clone_node acc p') p' tl
                 else
+                if not ((Config_tree.is_tag[@alert "-exn"]) ctree path_done)
+                then result (* path not in config tree *)
+                else
                 if (Config_tree.is_tag[@alert "-exn"]) ctree path_done &&
                 not (spurious_value p')
                 then
