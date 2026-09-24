@@ -33,10 +33,10 @@ module Diff_tree = struct
              del = (Config_tree.clone[@alert "-exn"]) ~descent:false ~set_values:(Some []) res.left res.del path; }
         | Unchanged ->
             {res with inter = (Config_tree.clone[@alert "-exn"]) ~descent:descent res.left res.inter path; }
-        | Updated data ->
+        | Updated ldata, rdata ->
                 (* if in this case, node at path is guaranteed to exist *)
-                let v = data.values in
-                let ov = (Config_tree.get_values[@alert "-exn"]) res.left path in
+                let v = rdata.values in
+                let ov = ldata.values in
                 match ov, v with
                 | [_], [_] -> {res with sub = (Config_tree.clone[@alert "-exn"]) res.left res.sub path;
                                del = (Config_tree.clone[@alert "-exn"]) res.left res.del path;
