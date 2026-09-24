@@ -1,4 +1,7 @@
-type change = Unchanged | Added | Subtracted | Updated of Config_tree.config_node_data
+type change = | Unchanged
+              | Added
+              | Subtracted
+              | Updated of Config_tree.config_node_data * Config_tree.config_node_data
 
 exception Incommensurable
 exception Empty_comparison
@@ -65,8 +68,9 @@ module Diff (P: Place) = struct
         | Some left_node, Some right_node when left_node = right_node ->
             P.diff_func ~descent:true path res Unchanged
         | Some left_node, Some right_node when left_node ^~ right_node ->
-            let data = data_of right_node in
-            P.diff_func ~descent:false path res (Updated data)
+            let ldata = data_of left_node in
+            let rdata = data_of right_node in
+            P.diff_func ~descent:false path res (Updated (ldata, rdata))
         | Some left_node, Some right_node ->
             let ret = P.diff_func ~descent:false path res Unchanged in
             List.fold_left (diff_calc path) ret (opt_zip left_node right_node)

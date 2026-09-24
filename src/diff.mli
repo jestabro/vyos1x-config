@@ -1,4 +1,7 @@
-type change = Unchanged | Added | Subtracted | Updated of Config_tree.config_node_data
+type change = | Unchanged
+              | Added
+              | Subtracted
+              | Updated of Config_tree.config_node_data * Config_tree.config_node_data
 
 exception Incommensurable
 exception Empty_comparison
