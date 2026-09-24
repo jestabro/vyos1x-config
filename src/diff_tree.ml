@@ -11,13 +11,15 @@ module Diff_tree = struct
                inter: Config_tree.t;
              }
 
-    let make_init l r = { left = l;
-                            right = r;
-                            add = Config_tree.default;
-                            sub = Config_tree.default;
-                            del = Config_tree.default;
-                            inter = Config_tree.default;
-                          }
+    let make_init ?(with_comments=false) l r =
+        { left = l;
+          right = r;
+          add = Config_tree.default;
+          sub = Config_tree.default;
+          del = Config_tree.default;
+          inter = Config_tree.default;
+          with_comments=with_comments;
+        }
 
     let diff_func ?(descent=true) (path : string list) res (m : change) =
         (* raises no exception:
