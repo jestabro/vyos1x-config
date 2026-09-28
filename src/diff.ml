@@ -12,7 +12,6 @@ let children_of n = Vytree.children_of_node n
 
 let (^~) (node : Config_tree.t) (node' : Config_tree.t) =
   name_of node = name_of node' &&
-(*  (data_of node).values <> (data_of node').values *)
   ((data_of node).values <> (data_of node').values ||
   (data_of node).comment <> (data_of node').comment)
 
@@ -71,11 +70,8 @@ module Diff (P: Place) = struct
         | Some left_node, Some right_node when left_node ^~ right_node ->
             let ldata = data_of left_node in
             let rdata = data_of right_node in
-            let ret = P.diff_func ~descent:false path res (Updated (ldata, rdata))
-            in
-            if not ldata.leaf then
-                List.fold_left (diff_calc path) ret (opt_zip left_node right_node)
-            else ret
+            let ret = P.diff_func ~descent:false path res (Updated (ldata, rdata)) in
+            List.fold_left (diff_calc path) ret (opt_zip left_node right_node)
         | Some left_node, Some right_node ->
             let ret = P.diff_func ~descent:false path res Unchanged in
             List.fold_left (diff_calc path) ret (opt_zip left_node right_node)

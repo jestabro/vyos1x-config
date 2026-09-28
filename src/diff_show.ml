@@ -77,15 +77,18 @@ module Diff_show = struct
                base_path: string list;
                open_blocks: string list list;
                config_diff: string;
+               with_comments: bool;
              }
 
-    let make_init l r rt path = { left = l;
-                                  right = r;
-                                  rt = rt;
-                                  base_path = path;
-                                  open_blocks = [];
-                                  config_diff = "";
-                                }
+    let make_init ?(with_comments=false) l r rt path =
+        { left = l;
+          right = r;
+          rt = rt;
+          base_path = path;
+          open_blocks = [];
+          config_diff = "";
+          with_comments = with_comments;
+        }
 
 
     let diff_func ?(descent=true) (path : string list) res (m : change) =
@@ -160,8 +163,11 @@ module Diff_show = struct
                     let rev_diff = diff_str ^ annotate_rendered m rendered in
                     {res with config_diff = rev_diff; open_blocks = rev_blocks;}
             end
-        | Updated ldata, rdata ->
-            let v = data.values in
+        | Updated (ldata, rdata) ->
+            if not res.with_comments && not ldata.leaf then
+                res
+            else
+            let v = rdata.values in
             let refp =
                 (Reference_tree.refpath[@alert "-exn"]) res.rt (res.base_path @ path) in
             let multi = (Reference_tree.is_multi[@alert "-exn"]) res.rt refp in

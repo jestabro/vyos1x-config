@@ -9,6 +9,7 @@ module Diff_tree = struct
                sub: Config_tree.t;
                del: Config_tree.t;
                inter: Config_tree.t;
+               with_comments: bool;
              }
 
     let make_init ?(with_comments=false) l r =
@@ -18,7 +19,7 @@ module Diff_tree = struct
           sub = Config_tree.default;
           del = Config_tree.default;
           inter = Config_tree.default;
-          with_comments=with_comments;
+          with_comments = with_comments;
         }
 
     let diff_func ?(descent=true) (path : string list) res (m : change) =
@@ -35,8 +36,11 @@ module Diff_tree = struct
              del = (Config_tree.clone[@alert "-exn"]) ~descent:false ~set_values:(Some []) res.left res.del path; }
         | Unchanged ->
             {res with inter = (Config_tree.clone[@alert "-exn"]) ~descent:descent res.left res.inter path; }
-        | Updated ldata, rdata ->
+        | Updated (ldata, rdata) ->
                 (* if in this case, node at path is guaranteed to exist *)
+                if not res.with_comments && not ldata.leaf then
+                    res
+                else
                 let v = rdata.values in
                 let ov = ldata.values in
                 match ov, v with
