@@ -37,12 +37,57 @@ module Diff_tree = struct
         | Unchanged ->
             {res with inter = (Config_tree.clone[@alert "-exn"]) ~descent:descent res.left res.inter path; }
         | Updated (ldata, rdata) ->
-                (* if in this case, node at path is guaranteed to exist *)
-                if not res.with_comments && not ldata.leaf then
-                    res
+            (* if in this case, node at path is guaranteed to exist *)
+            let default_comments = (None, None, None) in
+            let sub_comment, add_comment, inter_comment =
+                if not res.with_comments then
+                    default_comments
+                else
+                let oc_opt = ldata.comment in
+                let c_opt = rdata.comment in
+                if c_opt = oc_opt then default_comments
+                else (oc_opt, c_opt, Some "")
+            in
+            let default_values = (None, None, None) in
+            let sub_vals_opt, add_vals_opt, inter_vals_opt =
+                if not ldata.leaf then
+                    default_values
                 else
                 let v = rdata.values in
                 let ov = ldata.values in
+                if ov = v then default_values
+                else
+                let ov_set = ValueS.of_list ov in
+                let v_set = ValueS.of_list v in
+                let sub_vals = ValueS.elements (ValueS.diff ov_set v_set) in
+                let add_vals = ValueS.elements (ValueS.diff v_set ov_set) in
+                let inter_vals = ValueS.elements (ValueS.inter ov_set v_set) in
+                (Some sub_vals, Some add_vals, Some inter_vals)
+            in
+            if (sub_comment, add_comment, inter_comment) = default_comments &&
+               (sub_vals_opt, add_vals_opt, inter_vals_opt) = default_vals then
+                   res
+            else
+            let sub_tree =
+                if Option.is_none sub_vals_opt then
+                    if Option.is_some sub_comment then
+                        (Config_tree.clone[@alert "-exn"]) ~descent:false ~set_values:sub_vals_opt ~set_comments:sub_comment res.left res.sub path
+                    else
+                        res.sub
+                else
+                    if not (Util.is_empty sub_vals) || Option.is_some sub_comment then
+                    (Config_tree.clone[@alert "-exn"]) ~descent:false ~set_values:sub_vals_opt ~set_comments:sub_comment res.left res.sub path
+                    else
+                        res.sub
+            in
+            let del_tree =
+                if Option.is_none sub_vals_opt then
+                    (* ... *)
+
+                match ov, v with
+                | [_], [_] ->
+
+
                 match ov, v with
                 | [_], [_] -> {res with sub = (Config_tree.clone[@alert "-exn"]) res.left res.sub path;
                                del = (Config_tree.clone[@alert "-exn"]) res.left res.del path;

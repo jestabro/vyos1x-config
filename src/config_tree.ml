@@ -313,7 +313,7 @@ let prune_delete node path =
     else node
 
 (* copy node paths between trees *)
-let rec clone_path ?(descent=true) ?(set_values=None) old_root new_root path_done path_remaining =
+let rec clone_path ?(descent=true) ?(set_values=None) ?(set_comments=None) old_root new_root path_done path_remaining =
     (* raises:
         [Vytree.Nonexistent_path]
        alert exn Vytree.get:
@@ -334,6 +334,11 @@ let rec clone_path ?(descent=true) ?(set_values=None) old_root new_root path_don
             | Some v -> { (Vytree.data_of_node old_node) with values = v }
             | None -> Vytree.data_of_node old_node
         in
+        let data =
+            match set_comments with
+            | None -> data
+            | _ as c_opt -> { data with comment = c_opt }
+        in
         if descent then
             let children' = Vytree.children_of_node old_node in
             (Vytree.insert[@alert "-exn"]) ~position:Lexical ~children:children' new_root path_total data
@@ -342,12 +347,17 @@ let rec clone_path ?(descent=true) ?(set_values=None) old_root new_root path_don
     | name :: names ->
         let path_done = path_done @ [name] in
         let old_node = (Vytree.get[@alert "-exn"]) old_root path_done in
+        let data =
+            match set_comments with
+            | None -> Vytree.data_of_node old_node
+            | _ as c_opt -> { (Vytree.data_of_node old_node) with comment = c_opt }
+        in
         let new_root =
-            (Vytree.insert[@alert "-exn"]) ~position:Lexical new_root path_done (Vytree.data_of_node old_node)
+            (Vytree.insert[@alert "-exn"]) ~position:Lexical new_root path_done data
         in
         clone_path ~descent:descent ~set_values:set_values old_root new_root path_done names
 
-let clone ?(descent=true) ?(set_values=None) old_root new_root path =
+let clone ?(descent=true) ?(set_values=None) ?(set_comments=None) old_root new_root path =
     (* raises:
         [Vytree.Nonexistent_path] from clone_path
      *)
@@ -356,7 +366,8 @@ let clone ?(descent=true) ?(set_values=None) old_root new_root path =
     | _ ->
             let path_existing = Vytree.get_existent_path new_root path in
             let path_remaining = Vylist.complement path path_existing in
-            clone_path ~descent:descent ~set_values:set_values old_root new_root path_existing path_remaining
+            clone_path ~descent:descent ~set_values:set_values ~set_comments:set_comments
+                old_root new_root path_existing path_remaining
 
 
 module Renderer =
