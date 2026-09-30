@@ -38,40 +38,28 @@ module Diff_tree = struct
             {res with inter = (Config_tree.clone[@alert "-exn"]) ~descent:descent res.left res.inter path; }
         | Updated (ldata, rdata) ->
             (* if in this case, node at path is guaranteed to exist *)
-            (*  *)
+            (* *)
             let diff_comments = res.diff_comments in
-            (*let comm_op =
-                match diff_comments with
-                | true -> Config_tree.Copy
-                | false -> Drop
-            in*)
-            (*let inter_comm_op =
-                match diff_comments, (ldata.comment <> rdata.comment) with
-                | true, true -> Config_tree.Drop
-                | true, false -> Copy
-                | false, _ -> Drop
-            in*)
-            let inter_comm_op =
-                match (ldata.comment <> rdata.comment) with
-                | true -> Config_tree.Drop
-                | false -> Copy
-            in
             let comment_diff = (ldata.comment <> rdata.comment) && diff_comments in
-            let sub_comment = comment_diff && Option.is_some ldata.comment in
-            let add_comment = comment_diff && Option.is_some rdata.comment in
+            let use_sub_comment = comment_diff && Option.is_some ldata.comment in
+            let use_add_comment = comment_diff && Option.is_some rdata.comment in
+            let inter_comment_op =
+                if ldata.comment <> rdata.comment then Config_tree.Drop
+                else Copy
+            in
             let option_is_empty o =
                 let o' = Option.value ~default:[] o in
                 Util.is_empty o'
             in
             (* collect actionable values *)
-            let default_values = (None, None, None) in
+            let none_values = (None, None, None) in
             let sub_vals_opt, add_vals_opt, inter_vals_opt =
                 if not ldata.leaf then
-                    default_values
+                    none_values
                 else
-                let v = rdata.values in
                 let ov = ldata.values in
-                if ov = v then default_values
+                let v = rdata.values in
+                if ov = v then none_values
                 else
                 let ov_set = ValueS.of_list ov in
                 let v_set = ValueS.of_list v in
@@ -81,26 +69,23 @@ module Diff_tree = struct
                 (Some sub_vals, Some add_vals, Some inter_vals)
             in
             let values = (sub_vals_opt, add_vals_opt, inter_vals_opt) in
-            if not diff_comments && values = default_values then
-                (* for example, if diff_comments = false in a non-leaf node,
-                   despite the fact that we are in case Updated *)
+            if not diff_comments && values = none_values then
                 res
             else
             let data_clone = (Config_tree.clone[@alert "-exn"]) ~descent:false in
             let sub_tree =
                 if Option.is_none sub_vals_opt then
-                    if sub_comment then
+                    if use_sub_comment then
                         data_clone ~set_values:sub_vals_opt res.left res.sub path
                     else
                         res.sub
                 else
-                    if not (option_is_empty sub_vals_opt) || sub_comment then
+                    if not (option_is_empty sub_vals_opt) || use_sub_comment then
                         data_clone ~set_values:sub_vals_opt res.left res.sub path
                     else
                         res.sub
             in
             let del_tree =
-                (* check: do we want to include comments here ? *)
                 if Option.is_none sub_vals_opt then
                     res.del
                 else
@@ -115,32 +100,26 @@ module Diff_tree = struct
             in
             let add_tree =
                 if Option.is_none add_vals_opt then
-                    if add_comment then
+                    if use_add_comment then
                         data_clone ~set_values:add_vals_opt res.right res.add path
                     else
                         res.add
                 else
-                    if not (option_is_empty add_vals_opt) || add_comment then
+                    if not (option_is_empty add_vals_opt) || use_add_comment then
                         data_clone ~set_values:add_vals_opt res.right res.add path
                     else
                         res.add
             in
             let inter_tree =
-                (*if Option.is_none inter_vals_opt then
-                    if diff_comments then
-                        data_clone ~set_values:inter_vals_opt ~comments:inter_comm_op res.left res.inter path
-                    else
-                        res.inter
-                else*)
                     if not (option_is_empty inter_vals_opt) then
-                        data_clone ~set_values:inter_vals_opt ~comments:inter_comm_op res.left res.inter path
+                        data_clone ~set_values:inter_vals_opt ~comments:inter_comment_op res.left res.inter path
                     else
                         res.inter
             in
-            { res with add = add_tree;
-              sub = sub_tree;
-              del = del_tree;
-              inter = inter_tree; }
+              { res with add = add_tree;
+                sub = sub_tree;
+                del = del_tree;
+                inter = inter_tree; }
 
 (*
                 match ov, v with
