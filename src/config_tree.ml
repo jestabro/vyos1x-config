@@ -1,5 +1,6 @@
 type value_behaviour = AddValue | ReplaceValue [@@deriving yojson]
 type command = Set | Delete
+type comment_op = Copy | Drop | Insert of string
 
 exception Duplicate_value
 exception Node_has_no_value
@@ -313,7 +314,7 @@ let prune_delete node path =
     else node
 
 (* copy node paths between trees *)
-let rec clone_path ?(descent=true) ?(set_values=None) ?(set_comments=None) old_root new_root path_done path_remaining =
+let rec clone_path ?(descent=true) ?(set_values=None) ?(comments=Copy) old_root new_root path_done path_remaining =
     (* raises:
         [Vytree.Nonexistent_path]
        alert exn Vytree.get:
@@ -329,15 +330,16 @@ let rec clone_path ?(descent=true) ?(set_values=None) ?(set_comments=None) old_r
     | [] | [_] ->
         let path_total = path_done @ path_remaining in
         let old_node = (Vytree.get[@alert "-exn"]) old_root path_total in
-        let data =
+        let data' =
             match set_values with
             | Some v -> { (Vytree.data_of_node old_node) with values = v }
             | None -> Vytree.data_of_node old_node
         in
         let data =
-            match set_comments with
-            | None -> data
-            | _ as c_opt -> { data with comment = c_opt }
+            match comments with
+            | Copy -> data'
+            | Drop -> { data' with comment = Some "" }
+            | Insert s -> { data' with comment = Some s }
         in
         if descent then
             let children' = Vytree.children_of_node old_node in
@@ -347,17 +349,19 @@ let rec clone_path ?(descent=true) ?(set_values=None) ?(set_comments=None) old_r
     | name :: names ->
         let path_done = path_done @ [name] in
         let old_node = (Vytree.get[@alert "-exn"]) old_root path_done in
+        let data' = Vytree.data_of_node old_node in
         let data =
-            match set_comments with
-            | None -> Vytree.data_of_node old_node
-            | _ as c_opt -> { (Vytree.data_of_node old_node) with comment = c_opt }
+            match comments with
+            | Copy -> data'
+            | Drop -> { data' with comment = Some "" }
+            | Insert s -> { data' with comment = Some s }
         in
         let new_root =
             (Vytree.insert[@alert "-exn"]) ~position:Lexical new_root path_done data
         in
-        clone_path ~descent:descent ~set_values:set_values old_root new_root path_done names
+        clone_path ~descent:descent ~set_values:set_values ~comments:comments old_root new_root path_done names
 
-let clone ?(descent=true) ?(set_values=None) ?(set_comments=None) old_root new_root path =
+let clone ?(descent=true) ?(set_values=None) ?(comments=Copy) old_root new_root path =
     (* raises:
         [Vytree.Nonexistent_path] from clone_path
      *)
@@ -366,7 +370,7 @@ let clone ?(descent=true) ?(set_values=None) ?(set_comments=None) old_root new_r
     | _ ->
             let path_existing = Vytree.get_existent_path new_root path in
             let path_remaining = Vylist.complement path path_existing in
-            clone_path ~descent:descent ~set_values:set_values ~set_comments:set_comments
+            clone_path ~descent:descent ~set_values:set_values ~comments:comments
                 old_root new_root path_existing path_remaining
 
 

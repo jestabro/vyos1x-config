@@ -1,5 +1,6 @@
 type value_behaviour = AddValue | ReplaceValue [@@deriving yojson]
 type command = Set | Delete
+type comment_op = Copy | Drop | Insert of string
 
 exception Duplicate_value
 exception Node_has_no_value
@@ -89,7 +90,7 @@ val get_subtree : ?with_node:bool -> t -> string list -> t
 
 val value_paths_of_tree : t -> string list list
 
-val clone : ?descent:bool -> ?set_values:string list option -> ?set_comments:string option -> t -> t -> string list -> t
+val clone : ?descent:bool -> ?set_values:string list option -> ?comments:comment_op -> t -> t -> string list -> t
 [@@alert exn "Vytree.Nonexistent_path"]
 
 val render_commands : ?op:command -> t -> string list -> string

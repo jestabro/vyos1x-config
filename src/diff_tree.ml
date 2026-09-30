@@ -39,18 +39,25 @@ module Diff_tree = struct
         | Updated (ldata, rdata) ->
             (* if in this case, node at path is guaranteed to exist *)
             (*  *)
-            (* collect actionable comments *)
-            let default_comments = (None, None, None) in
-            let sub_comment, add_comment, inter_comment =
-                if not res.with_comments then
-                    default_comments
-                else
-                let oc_opt = ldata.comment in
-                let c_opt = rdata.comment in
-                if c_opt = oc_opt then default_comments
-                else (oc_opt, c_opt, Some "")
+            let with_comments = res.with_comments in
+            let comm_op =
+                match with_comments with
+                | true -> Config_tree.Copy
+                | false -> Drop
             in
-            let comments = (sub_comment, add_comment, inter_comment) in
+            let inter_comm_op =
+                match with_comments, (ldata.comment <> rdata.comment) with
+                | true, true -> Config_tree.Drop
+                | true, false -> Copy
+                | false, _ -> Drop
+            in
+            let comment_diff = (ldata.comment <> rdata.comment) && with_comments in
+            let sub_comment = comment_diff && Option.is_some ldata.comment in
+            let add_comment = comment_diff && Option.is_some rdata.comment in
+            let option_is_empty o =
+                let o' = Option.value ~default:[] o in
+                Util.is_empty o'
+            in
             (* collect actionable values *)
             let default_values = (None, None, None) in
             let sub_vals_opt, add_vals_opt, inter_vals_opt =
@@ -69,21 +76,21 @@ module Diff_tree = struct
                 (Some sub_vals, Some add_vals, Some inter_vals)
             in
             let values = (sub_vals_opt, add_vals_opt, inter_vals_opt) in
-            if comments = default_comments && values = default_values then
+            if not with_comments && values = default_values then
                 (* for example, if with_comments = false in a non-leaf node,
                    despite the fact that we are in case Updated *)
                 res
             else
+            let data_clone = (Config_tree.clone[@alert "-exn"]) ~descent:false in
             let sub_tree =
                 if Option.is_none sub_vals_opt then
-                    if Option.is_some sub_comment then
-                        (Config_tree.clone[@alert "-exn"]) ~descent:false ~set_values:sub_vals_opt ~set_comments:sub_comment res.left res.sub path
+                    if sub_comment then
+                        data_clone ~set_values:sub_vals_opt ~comments:comm_op res.left res.sub path
                     else
                         res.sub
                 else
-                    let sub_vals = Option.value ~default:[] sub_vals_opt in
-                    if not (Util.is_empty sub_vals) || Option.is_some sub_comment then
-                        (Config_tree.clone[@alert "-exn"]) ~descent:false ~set_values:sub_vals_opt ~set_comments:sub_comment res.left res.sub path
+                    if not (option_is_empty sub_vals_opt) || sub_comment then
+                        data_clone ~set_values:sub_vals_opt ~comments:comm_op res.left res.sub path
                     else
                         res.sub
             in
@@ -92,41 +99,36 @@ module Diff_tree = struct
                 if Option.is_none sub_vals_opt then
                     res.del
                 else
-                    let sub_vals = Option.value ~default:[] sub_vals_opt in
-                    let add_vals = Option.value ~default:[] add_vals_opt in
-                    let inter_vals = Option.value ~default:[] inter_vals_opt in
-                    if not (Util.is_empty sub_vals) then
-                        if (Util.is_empty add_vals) && (Util.is_empty inter_vals) then
+                    if not (option_is_empty sub_vals_opt) then
+                        if (option_is_empty add_vals_opt) && (option_is_empty inter_vals_opt) then
                             (* delete whole node, not just values *)
-                            (Config_tree.clone[@alert "-exn"]) ~set_values:(Some []) res.left res.del path
+                            data_clone ~set_values:(Some []) ~comments:Drop res.left res.del path
                         else
-                            (Config_tree.clone[@alert "-exn"]) ~set_values:(Some sub_vals) res.left res.del path
+                            data_clone ~set_values:sub_vals_opt ~comments:Drop res.left res.del path
                     else
                         res.del
             in
             let add_tree =
                 if Option.is_none add_vals_opt then
-                    if Option.is_some add_comment then
-                        (Config_tree.clone[@alert "-exn"]) ~descent:false ~set_values:add_vals_opt ~set_comments:add_comment res.right res.add path
+                    if add_comment then
+                        data_clone ~set_values:add_vals_opt ~comments:comm_op res.right res.add path
                     else
                         res.add
                 else
-                    let add_vals = Option.value ~default:[] add_vals_opt in
-                    if not (Util.is_empty add_vals) || Option.is_some add_comment then
-                        (Config_tree.clone[@alert "-exn"]) ~descent:false ~set_values:add_vals_opt ~set_comments:add_comment res.right res.add path
+                    if not (option_is_empty add_vals_opt) || add_comment then
+                        data_clone ~set_values:add_vals_opt ~comments:comm_op res.right res.add path
                     else
                         res.add
             in
             let inter_tree =
                 if Option.is_none inter_vals_opt then
-                    if Option.is_some inter_comment then
-                        (Config_tree.clone[@alert "-exn"]) ~descent:false ~set_values:inter_vals_opt ~set_comments:inter_comment res.left res.inter path
+                    if with_comments then
+                        data_clone ~set_values:inter_vals_opt ~comments:inter_comm_op res.left res.inter path
                     else
                         res.inter
                 else
-                    let inter_vals = Option.value ~default:[] inter_vals_opt in
-                    if not (Util.is_empty inter_vals) || Option.is_some inter_comment then
-                        (Config_tree.clone[@alert "-exn"]) ~descent:false ~set_values:inter_vals_opt ~set_comments:inter_comment res.left res.inter path
+                    if not (option_is_empty inter_vals_opt) then
+                        data_clone ~set_values:inter_vals_opt ~comments:inter_comm_op res.left res.inter path
                     else
                         res.inter
             in
