@@ -1,5 +1,5 @@
 
-val diff_tree: ?with_comments:bool -> string list -> Config_tree.t -> Config_tree.t -> Config_tree.t
+val diff_tree: ?diff_comments:bool -> string list -> Config_tree.t -> Config_tree.t -> Config_tree.t
 [@@alert exn "Diff.Incommensurable"]
 [@@alert exn "Diff.Empty_comparison"]
 

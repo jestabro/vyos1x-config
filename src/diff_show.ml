@@ -77,17 +77,17 @@ module Diff_show = struct
                base_path: string list;
                open_blocks: string list list;
                config_diff: string;
-               with_comments: bool;
+               diff_comments: bool;
              }
 
-    let make_init ?(with_comments=false) l r rt path =
+    let make_init ?(diff_comments=false) l r rt path =
         { left = l;
           right = r;
           rt = rt;
           base_path = path;
           open_blocks = [];
           config_diff = "";
-          with_comments = with_comments;
+          diff_comments = diff_comments;
         }
 
 
@@ -164,7 +164,7 @@ module Diff_show = struct
                     {res with config_diff = rev_diff; open_blocks = rev_blocks;}
             end
         | Updated (ldata, rdata) ->
-            if not res.with_comments && not ldata.leaf then
+            if not res.diff_comments && not ldata.leaf then
                 res
             else
             let v = rdata.values in

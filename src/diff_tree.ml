@@ -9,17 +9,17 @@ module Diff_tree = struct
                sub: Config_tree.t;
                del: Config_tree.t;
                inter: Config_tree.t;
-               with_comments: bool;
+               diff_comments: bool;
              }
 
-    let make_init ?(with_comments=false) l r =
+    let make_init ?(diff_comments=false) l r =
         { left = l;
           right = r;
           add = Config_tree.default;
           sub = Config_tree.default;
           del = Config_tree.default;
           inter = Config_tree.default;
-          with_comments = with_comments;
+          diff_comments = diff_comments;
         }
 
     let diff_func ?(descent=true) (path : string list) res (m : change) =
@@ -39,19 +39,19 @@ module Diff_tree = struct
         | Updated (ldata, rdata) ->
             (* if in this case, node at path is guaranteed to exist *)
             (*  *)
-            let with_comments = res.with_comments in
+            let diff_comments = res.diff_comments in
             let comm_op =
-                match with_comments with
+                match diff_comments with
                 | true -> Config_tree.Copy
                 | false -> Drop
             in
             let inter_comm_op =
-                match with_comments, (ldata.comment <> rdata.comment) with
+                match diff_comments, (ldata.comment <> rdata.comment) with
                 | true, true -> Config_tree.Drop
                 | true, false -> Copy
                 | false, _ -> Drop
             in
-            let comment_diff = (ldata.comment <> rdata.comment) && with_comments in
+            let comment_diff = (ldata.comment <> rdata.comment) && diff_comments in
             let sub_comment = comment_diff && Option.is_some ldata.comment in
             let add_comment = comment_diff && Option.is_some rdata.comment in
             let option_is_empty o =
@@ -76,8 +76,8 @@ module Diff_tree = struct
                 (Some sub_vals, Some add_vals, Some inter_vals)
             in
             let values = (sub_vals_opt, add_vals_opt, inter_vals_opt) in
-            if not with_comments && values = default_values then
-                (* for example, if with_comments = false in a non-leaf node,
+            if not diff_comments && values = default_values then
+                (* for example, if diff_comments = false in a non-leaf node,
                    despite the fact that we are in case Updated *)
                 res
             else
@@ -122,7 +122,7 @@ module Diff_tree = struct
             in
             let inter_tree =
                 if Option.is_none inter_vals_opt then
-                    if with_comments then
+                    if diff_comments then
                         data_clone ~set_values:inter_vals_opt ~comments:inter_comm_op res.left res.inter path
                     else
                         res.inter
@@ -204,7 +204,7 @@ let tree_at_path path node =
 
 (* call recursive diff on Diff_tree.t with Diff_tree.diff_func *)
 
-let diff_trees ?(with_comments=false) path left right =
+let diff_trees ?(diff_comments=false) path left right =
     (* raises:
         [Empty_comparison] from tree_at_path
         [Incommensurable]
@@ -214,17 +214,17 @@ let diff_trees ?(with_comments=false) path left right =
     else
         let (left, right) = if not (path = []) then
             (tree_at_path path left, tree_at_path path right) else (left, right) in
-        let trees = Diff_tree.make_init ~with_comments left right in
+        let trees = Diff_tree.make_init ~diff_comments left right in
         D.diff trees left right
 
 (* wrapper to return single tree with diff trees as subtrees *)
 
-let diff_tree ?(with_comments=false) path left right =
+let diff_tree ?(diff_comments=false) path left right =
     (* raises:
         [Incommensurable],
         [Empty_comparison] from compare
      *)
-    let trees = diff_trees ~with_comments path left right in
+    let trees = diff_trees ~diff_comments path left right in
     let add_node =
         Vytree.make_full Config_tree.default_data "add" (Vytree.children_of_node (trees.add)) in
     let sub_node =
