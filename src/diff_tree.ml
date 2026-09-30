@@ -40,16 +40,21 @@ module Diff_tree = struct
             (* if in this case, node at path is guaranteed to exist *)
             (*  *)
             let diff_comments = res.diff_comments in
-            let comm_op =
+            (*let comm_op =
                 match diff_comments with
                 | true -> Config_tree.Copy
                 | false -> Drop
-            in
-            let inter_comm_op =
+            in*)
+            (*let inter_comm_op =
                 match diff_comments, (ldata.comment <> rdata.comment) with
                 | true, true -> Config_tree.Drop
                 | true, false -> Copy
                 | false, _ -> Drop
+            in*)
+            let inter_comm_op =
+                match (ldata.comment <> rdata.comment) with
+                | true -> Config_tree.Drop
+                | false -> Copy
             in
             let comment_diff = (ldata.comment <> rdata.comment) && diff_comments in
             let sub_comment = comment_diff && Option.is_some ldata.comment in
@@ -85,12 +90,12 @@ module Diff_tree = struct
             let sub_tree =
                 if Option.is_none sub_vals_opt then
                     if sub_comment then
-                        data_clone ~set_values:sub_vals_opt ~comments:comm_op res.left res.sub path
+                        data_clone ~set_values:sub_vals_opt res.left res.sub path
                     else
                         res.sub
                 else
                     if not (option_is_empty sub_vals_opt) || sub_comment then
-                        data_clone ~set_values:sub_vals_opt ~comments:comm_op res.left res.sub path
+                        data_clone ~set_values:sub_vals_opt res.left res.sub path
                     else
                         res.sub
             in
@@ -111,22 +116,22 @@ module Diff_tree = struct
             let add_tree =
                 if Option.is_none add_vals_opt then
                     if add_comment then
-                        data_clone ~set_values:add_vals_opt ~comments:comm_op res.right res.add path
+                        data_clone ~set_values:add_vals_opt res.right res.add path
                     else
                         res.add
                 else
                     if not (option_is_empty add_vals_opt) || add_comment then
-                        data_clone ~set_values:add_vals_opt ~comments:comm_op res.right res.add path
+                        data_clone ~set_values:add_vals_opt res.right res.add path
                     else
                         res.add
             in
             let inter_tree =
-                if Option.is_none inter_vals_opt then
+                (*if Option.is_none inter_vals_opt then
                     if diff_comments then
                         data_clone ~set_values:inter_vals_opt ~comments:inter_comm_op res.left res.inter path
                     else
                         res.inter
-                else
+                else*)
                     if not (option_is_empty inter_vals_opt) then
                         data_clone ~set_values:inter_vals_opt ~comments:inter_comm_op res.left res.inter path
                     else
