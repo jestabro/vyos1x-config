@@ -202,7 +202,7 @@ let tree_at_path path node =
 
 (* call recursive diff on Diff_tree.t with Diff_tree.diff_func *)
 
-let diff_trees path left right =
+let diff_trees ?(with_comments=false) path left right =
     (* raises:
         [Empty_comparison] from tree_at_path
         [Incommensurable]
@@ -212,17 +212,17 @@ let diff_trees path left right =
     else
         let (left, right) = if not (path = []) then
             (tree_at_path path left, tree_at_path path right) else (left, right) in
-        let trees = Diff_tree.make_init left right in
+        let trees = Diff_tree.make_init ~with_comments left right in
         D.diff trees left right
 
 (* wrapper to return single tree with diff trees as subtrees *)
 
-let diff_tree path left right =
+let diff_tree ?(with_comments=false) path left right =
     (* raises:
         [Incommensurable],
         [Empty_comparison] from compare
      *)
-    let trees = diff_trees path left right in
+    let trees = diff_trees ~with_comments path left right in
     let add_node =
         Vytree.make_full Config_tree.default_data "add" (Vytree.children_of_node (trees.add)) in
     let sub_node =
