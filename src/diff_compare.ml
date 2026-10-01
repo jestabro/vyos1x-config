@@ -67,6 +67,8 @@ module Diff_compare = struct
           diff_comments = diff_comments;
         }
 
+    let diff_comments res = res.diff_comments
+
     let diff_func ?descent:_ (path : string list) res (m : change) =
         (* raises no exception:
             clone will always be called on extant path of left or right

@@ -12,7 +12,11 @@ let children_of n = Vytree.children_of_node n
 
 let (^~) (node : Config_tree.t) (node' : Config_tree.t) =
   name_of node = name_of node' &&
-  ((data_of node).values <> (data_of node').values ||
+  List.sort compare (data_of node).values <> List.sort compare (data_of node').values
+
+let (%~) (node : Config_tree.t) (node' : Config_tree.t) =
+  name_of node = name_of node' &&
+  (List.sort compare (data_of node).values <> List.sort compare (data_of node').values ||
   (data_of node).comment <> (data_of node').comment)
 
 let left_opt_pairs n m =
@@ -56,18 +60,24 @@ let update_path path left_opt right_opt =
 module type Place = sig
     type t
     val diff_func : ?descent:bool -> string list -> t -> change -> t
+    val diff_comments : t -> bool
 end
 
 module Diff (P: Place) = struct
     let rec diff_calc (path : string list) (res: P.t) ((left_node_opt, right_node_opt) : Config_tree.t option * Config_tree.t option) =
         let path = update_path path left_node_opt right_node_opt in
+        let diff_comments = P.diff_comments res in
         match left_node_opt, right_node_opt with
         | None, None -> raise Empty_comparison
         | Some _, None -> P.diff_func ~descent:true path res Subtracted
         | None, Some _ -> P.diff_func ~descent:true path res Added
         | Some left_node, Some right_node when left_node = right_node ->
             P.diff_func ~descent:true path res Unchanged
-        | Some left_node, Some right_node when left_node ^~ right_node ->
+        | Some left_node, Some right_node when (not diff_comments && left_node ^~ right_node) ->
+            let ldata = data_of left_node in
+            let rdata = data_of right_node in
+            P.diff_func ~descent:false path res (Updated (ldata, rdata))
+        | Some left_node, Some right_node when (diff_comments && left_node %~ right_node) ->
             let ldata = data_of left_node in
             let rdata = data_of right_node in
             let ret = P.diff_func ~descent:false path res (Updated (ldata, rdata)) in

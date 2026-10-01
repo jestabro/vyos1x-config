@@ -90,6 +90,8 @@ module Diff_show = struct
           diff_comments = diff_comments;
         }
 
+    let diff_comments res = res.diff_comments
+
 
     let diff_func ?(descent=true) (path : string list) res (m : change) =
         (* alert exn Vytree.get, Reference_tree.refpath, Config_tree.get_values,
