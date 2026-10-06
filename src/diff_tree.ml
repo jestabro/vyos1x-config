@@ -42,7 +42,7 @@ module Diff_tree = struct
             (* if in this case, node at path is guaranteed to exist *)
             (* *)
             let diff_comments = res.diff_comments in
-            let comment_diff = (ldata.comment <> rdata.comment) && diff_comments in
+            let comment_diff = diff_comments && (ldata.comment <> rdata.comment) in
             let use_sub_comment = comment_diff && Option.is_some ldata.comment in
             let use_add_comment = comment_diff && Option.is_some rdata.comment in
             let inter_comment_op =
