@@ -45,6 +45,8 @@ val insert_multi_level : ?position:position -> 'a -> 'a t -> string list -> stri
 
 val merge_children : ('a -> 'a -> 'a) -> (string -> string -> int) -> 'a t -> 'a t
 
+val merge_children_orig : ('a -> 'a -> 'a) -> (string -> string -> int) -> 'a t -> 'a t
+
 val delete : 'a t -> string list -> 'a t
 [@@alert exn "Vytree.Empty_path"]
 [@@alert exn "Vytree.Nonexistent_path"]

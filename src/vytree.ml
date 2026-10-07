@@ -191,6 +191,41 @@ let merge_children merge_data cmp node =
             n :: (aux ns)
     in {node with children=(aux node.children)}
 
+let merge_children_orig merge_data cmp node =
+    (* Given a node N and a list of nodes NS, find all nodes in NS that
+       have the same name as N and merge their children into N, sorting
+       children by a comparison function cmp (string -> string -> int) on
+       node names *)
+    (* Collect the children of every same-named node, then concatenate and
+       sort once: appending and re-sorting after each merge made parsing
+       cubic in the number of same-named siblings, e.g. the entries of one
+       "rule" tag node, and sorting once gives the same tree *)
+    let merge_into n ns =
+        let rec collect data acc merged ns =
+            match ns with
+            | [] -> (data, acc, merged)
+            | n' :: ns' ->
+                if n.name = n'.name then
+                    collect (merge_data data n'.data) (n'.children :: acc) true ns'
+                else collect data acc merged ns'
+        in
+        let data, acc, merged = collect n.data [n.children] false ns in
+        if merged then
+            sort_children cmp {n with children=(List.concat (List.rev acc)); data=data}
+        else n
+    in
+    (* Given a list of nodes, for every node, find subsequent children with
+       the same name and merge them into the first node, then delete remaining
+       nodes from the list *)
+    let rec aux ns =
+        match ns with
+        | [] -> []
+        | n :: ns ->
+            let n = merge_into n ns in
+            let ns = List.filter (fun x -> x.name <> n.name) ns in
+            n :: (aux ns)
+    in {node with children=(aux node.children)}
+
 (* When inserting at a path that, entirely or partially,
    does not exist yet, create missing nodes on the way with default data *)
 let rec insert_multi_level ?(position=Default) default_data node path_done path_remaining data =
