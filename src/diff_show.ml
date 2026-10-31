@@ -70,6 +70,22 @@ let render_level_close indent node path =
     let indent_str = Config_tree.make_indent indent level in
     Printf.sprintf "%s}\n" indent_str
 
+let render_node (module F : Config_render.R) ?(ord_val=false) indent level node =
+    F.render_node ~ord_val:ord_val indent level node
+
+let render_annotated_node func_values func_comment indent level node =
+    let f = Config_render.make func_values func_comment in
+    render_node f indent level node
+
+(*
+let func_comment = Config_tree.render_comment in
+let func_values ?(ord_val=false) indent_str name values =
+    annotate_rendered m (Config_tree.render_values ~ord_val:ord_val indent_str name values)
+in
+let f = Config_render.make func_values func_comment in
+let rev_diff = diff_str ^ (render_node f indent level node)
+in
+*)
 module Diff_show = struct
     type t = { left: Config_tree.t;
                right: Config_tree.t;
@@ -77,15 +93,20 @@ module Diff_show = struct
                base_path: string list;
                open_blocks: string list list;
                config_diff: string;
+               diff_comments: bool;
              }
 
-    let make_init l r rt path = { left = l;
-                                  right = r;
-                                  rt = rt;
-                                  base_path = path;
-                                  open_blocks = [];
-                                  config_diff = "";
-                                }
+    let make_init ?(diff_comments=false) l r rt path =
+        { left = l;
+          right = r;
+          rt = rt;
+          base_path = path;
+          open_blocks = [];
+          config_diff = "";
+          diff_comments = diff_comments;
+        }
+
+    let diff_comments res = res.diff_comments
 
 
     let diff_func ?(descent=true) (path : string list) res (m : change) =
@@ -168,7 +189,12 @@ module Diff_show = struct
                     let rev_diff = diff_str ^ annotate_rendered m rendered in
                     {res with config_diff = rev_diff; open_blocks = rev_blocks;}
             end
-        | Updated v ->
+        | Updated (_cmp, ldata, rdata) ->
+            if not res.diff_comments && not ldata.leaf then
+                res
+            else
+            let func_comment = Config_tree.render_comment in
+            let v = rdata.values in
             let refp =
                 (Reference_tree.refpath[@alert "-exn"]) res.rt (res.base_path @ path) in
             let multi = (Reference_tree.is_multi[@alert "-exn"]) res.rt refp in
@@ -183,10 +209,23 @@ module Diff_show = struct
             in
             match multi with
             | false ->
+                (*
                 let rendered =
                     Config_tree.render_values indent_str name v
                 in
                 let rev_diff = diff_str ^ annotate_rendered m rendered in
+                *)
+                let func_values ?ord_val:_ indent_str name values =
+                    let rendered =
+                        Config_tree.render_values indent_str name values
+                    in
+                    annotate_rendered m rendered
+                in
+                let data = rdata in
+                let node = Vytree.make data name in
+                let rev_diff =
+                    diff_str ^ (render_annotated_node func_values func_comment indent level node)
+                in
                 {res with config_diff = rev_diff; open_blocks = rev_blocks;}
             | true ->
                 let ov = (Config_tree.get_values[@alert "-exn"]) res.left path in
