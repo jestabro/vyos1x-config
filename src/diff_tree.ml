@@ -78,9 +78,11 @@ module Diff_tree = struct
         (* collect actionable values *)
         let ov = ldata.values in
         let v = rdata.values in
+        let ov_set = ValueS.of_list ov in
+        let v_set = ValueS.of_list v in
         let none_values = (None, None, None) in
         let sub_vals_opt, add_vals_opt, inter_vals_opt =
-            if not ldata.leaf || ov = v then
+            if not ldata.leaf || ov_set = v_set then
                 none_values
             else
                 let ov_set = ValueS.of_list ov in
