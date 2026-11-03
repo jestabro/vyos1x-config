@@ -194,14 +194,16 @@ module Diff_show = struct
                 res
             else
             let func_comment = Config_tree.render_comment in
-            let v = rdata.values in
+(*            let v = rdata.values in *)
             let refp =
                 (Reference_tree.refpath[@alert "-exn"]) res.rt (res.base_path @ path) in
             let multi = (Reference_tree.is_multi[@alert "-exn"]) res.rt refp in
             let level = get_level_at_path res.left path in
+            (*
             let indent_str =
                 Config_tree.make_indent indent level
             in
+            *)
             let name =
                 match Util.get_last path with
                 | None -> (* not possible *) "none"
@@ -228,35 +230,43 @@ module Diff_show = struct
                 in
                 {res with config_diff = rev_diff; open_blocks = rev_blocks;}
             | true ->
-                let ov = (Config_tree.get_values[@alert "-exn"]) res.left path in
+(*                let ov = (Config_tree.get_values[@alert "-exn"]) res.left path in *)
+                let ov = ldata.values in
+                let v = rdata.values in
                 let ov_set = ValueS.of_list ov in
                 let v_set = ValueS.of_list v in
                 let sub_vals = ValueS.elements (ValueS.diff ov_set v_set) in
                 let add_vals = ValueS.elements (ValueS.diff v_set ov_set) in
                 let inter_vals = ValueS.elements (ValueS.inter ov_set v_set) in
-                let sub_rendered =
-                    match sub_vals with
-                    | [] -> ""
-                    | _ ->
-                        Config_tree.render_values indent_str name sub_vals
+                let func_values ?ord_val:_ indent_str name _values =
+                    let sub_rendered =
+                        match sub_vals with
+                        | [] -> ""
+                        | _ ->
+                            Config_tree.render_values indent_str name sub_vals
+                    in
+                    let sub_diff = annotate_rendered Subtracted sub_rendered in
+                    let add_rendered =
+                        match add_vals with
+                        | [] -> ""
+                        | _ ->
+                            Config_tree.render_values indent_str name add_vals
+                    in
+                    let add_diff = annotate_rendered Added add_rendered in
+                    let inter_rendered =
+                        match inter_vals with
+                        | [] -> ""
+                        | _ ->
+                            Config_tree.render_values indent_str name inter_vals
+                    in
+                    let inter_diff = annotate_rendered Unchanged inter_rendered in
+                    sub_diff ^ inter_diff ^ add_diff
                 in
-                let sub_diff = annotate_rendered Subtracted sub_rendered in
-                let add_rendered =
-                    match add_vals with
-                    | [] -> ""
-                    | _ ->
-                        Config_tree.render_values indent_str name add_vals
+                let data = ldata in
+                let node = Vytree.make data name in
+                let rev_diff =
+                    diff_str ^ (render_annotated_node func_values func_comment indent level node)
                 in
-                let add_diff = annotate_rendered Added add_rendered in
-                let inter_rendered =
-                    match inter_vals with
-                    | [] -> ""
-                    | _ ->
-                        Config_tree.render_values indent_str name inter_vals
-                in
-                let inter_diff = annotate_rendered Unchanged inter_rendered in
-                let value_diff = sub_diff ^ inter_diff ^ add_diff in
-                let rev_diff = diff_str ^ value_diff in
                 {res with config_diff = rev_diff; open_blocks = rev_blocks;}
 end
 
