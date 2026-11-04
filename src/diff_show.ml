@@ -312,18 +312,19 @@ let diff_show ?(diff_comments=false) rt path left right =
     if (Vytree.name_of_node left) <> (Vytree.name_of_node right) then
         raise Incommensurable
     else
-        let (left, right) =
+        let (left, right, path') =
             if not (Util.is_empty path) then
-            let with_node =
-            match Reference_tree.get_path_type rt path with
-            | `Leaf | `Tag -> true
-            | _ -> false
-            in
-            (Config_tree.get_subtree ~with_node left path,
-            Config_tree.get_subtree ~with_node right path)
-            else (left, right)
+            let with_node, trim_path =
+                match Reference_tree.get_path_type rt path with
+                | `Leaf | `Multi | `Tag -> true, (Util.drop_last path)
+                | _ -> false, path
+                in
+                (Config_tree.get_subtree ~with_node left path,
+                 Config_tree.get_subtree ~with_node right path,
+                 trim_path)
+            else (left, right, path)
         in
-        let init = Diff_show.make_init ~diff_comments left right rt path in
+        let init = Diff_show.make_init ~diff_comments left right rt path' in
         let ret = D.diff init left right in
         (* close final braces *)
         let res = Diff_show.diff_func ~descent:false [] ret Unchanged in
