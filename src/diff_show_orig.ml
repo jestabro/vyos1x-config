@@ -241,18 +241,19 @@ let diff_show_orig rt path left right =
     if (Vytree.name_of_node left) <> (Vytree.name_of_node right) then
         raise Incommensurable
     else
-        let (left, right) =
+        let (left, right, path') =
             if not (Util.is_empty path) then
-            let with_node =
-            match Reference_tree.get_path_type rt path with
-            | `Leaf -> true
-            | _ -> false
-            in
-            (Config_tree.get_subtree ~with_node left path,
-            Config_tree.get_subtree ~with_node right path)
-            else (left, right)
+            let with_node, adjust_path =
+                match Reference_tree.get_path_type rt path with
+                | `Leaf | `Multi | `Tag -> true, (Util.drop_last path)
+                | _ -> false, path
+                in
+                (Config_tree.get_subtree ~with_node left path,
+                 Config_tree.get_subtree ~with_node right path,
+                 adjust_path)
+            else (left, right, path)
         in
-        let init = Diff_show_orig.make_init left right rt path in
+        let init = Diff_show_orig.make_init left right rt path' in
         let ret = D.diff init left right in
         (* close final braces *)
         let res = Diff_show_orig.diff_func ~descent:false [] ret Unchanged in
