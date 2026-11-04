@@ -304,7 +304,7 @@ end
 module D = Diff(Diff_show)
 
 (* call recursive diff on config_trees with config_diff as the diff_func *)
-let diff_show rt path left right =
+let diff_show ?(diff_comments=false) rt path left right =
     (* raises:
         [Incommensurable]
         [Empty_comparison]
@@ -323,7 +323,7 @@ let diff_show rt path left right =
             Config_tree.get_subtree ~with_node right path)
             else (left, right)
         in
-        let init = Diff_show.make_init left right rt path in
+        let init = Diff_show.make_init ~diff_comments left right rt path in
         let ret = D.diff init left right in
         (* close final braces *)
         let res = Diff_show.diff_func ~descent:false [] ret Unchanged in
