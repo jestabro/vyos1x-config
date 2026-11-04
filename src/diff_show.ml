@@ -316,7 +316,7 @@ let diff_show ?(diff_comments=false) rt path left right =
             if not (Util.is_empty path) then
             let with_node =
             match Reference_tree.get_path_type rt path with
-            | `Leaf -> true
+            | `Leaf | `Tag -> true
             | _ -> false
             in
             (Config_tree.get_subtree ~with_node left path,
