@@ -80,7 +80,7 @@ let render_annotated_node func_values func_comment indent level node =
 (*
 let func_comment = Config_tree.render_comment in
 let func_values ?(ord_val=false) indent_str name values =
-    annotate_rendered m (Config_tree.render_values ~ord_val:ord_val indent_str name values)
+    annotate_rendered chg (Config_tree.render_values ~ord_val:ord_val indent_str name values)
 in
 let f = Config_render.make func_values func_comment in
 let rev_diff = diff_str ^ (render_node f indent level node)
@@ -109,7 +109,7 @@ module Diff_show = struct
     let diff_comments res = res.diff_comments
 
 
-    let diff_func ?(descent=true) (path : string list) res (m : change) =
+    let diff_func ?(descent=true) (path : string list) res (chg : change) =
         (* alert exn Vytree.get, Reference_tree.refpath, Config_tree.get_values,
            Reference_tree.is_multi, Config_tree.is_tag_value:
             [Vytree.Empty_path] checked at only point possible (Unchanged)
@@ -140,14 +140,14 @@ module Diff_show = struct
         in
         let diff_str, rev_blocks = close_blocks res.config_diff res.open_blocks
         in
-        match m with
+        match chg with
         | Added ->
             let node = (Vytree.get[@alert "-exn"]) res.right path in
             let level = get_level_at_path res.right path in
             let rendered =
                 Config_tree.render_node indent level node
             in
-            let rev_diff = diff_str ^ annotate_rendered m rendered in
+            let rev_diff = diff_str ^ annotate_rendered chg rendered in
             {res with config_diff = rev_diff; open_blocks = rev_blocks;}
         | Subtracted ->
             let node = (Vytree.get[@alert "-exn"]) res.left path in
@@ -155,14 +155,14 @@ module Diff_show = struct
             let rendered =
                 Config_tree.render_node indent level node
             in
-            let rev_diff = diff_str ^ annotate_rendered m rendered in
+            let rev_diff = diff_str ^ annotate_rendered chg rendered in
             {res with config_diff = rev_diff; open_blocks = rev_blocks;}
         | Unchanged ->
             begin
             match descent with
             | false ->
                 let rendered = render_level_open indent res.left path in
-                let rev_diff = diff_str ^ annotate_rendered m rendered in
+                let rev_diff = diff_str ^ annotate_rendered chg rendered in
                 {res with config_diff = rev_diff; open_blocks = path::rev_blocks}
             | true ->
                 match path with
@@ -170,7 +170,7 @@ module Diff_show = struct
                     let rendered =
                         Config_tree.render_config res.left
                     in
-                    let rev_diff = diff_str ^ annotate_rendered m rendered in
+                    let rev_diff = diff_str ^ annotate_rendered chg rendered in
                     {res with config_diff = rev_diff; open_blocks = rev_blocks;}
                 | _ ->
                     let level = get_level_at_path res.left path in
@@ -186,42 +186,73 @@ module Diff_show = struct
                         else
                             Config_tree.render_node indent level node
                     in
-                    let rev_diff = diff_str ^ annotate_rendered m rendered in
+                    let rev_diff = diff_str ^ annotate_rendered chg rendered in
                     {res with config_diff = rev_diff; open_blocks = rev_blocks;}
             end
-        | Updated (_cmp, ldata, rdata) ->
-            if not res.diff_comments && not ldata.leaf then
+        | Updated (cmp, ldata, rdata) ->
+(*            if not res.diff_comments && not ldata.leaf then
                 res
-            else
-            let func_comment = Config_tree.render_comment in
-(*            let v = rdata.values in *)
-            let refp =
-                (Reference_tree.refpath[@alert "-exn"]) res.rt (res.base_path @ path) in
-            let multi = (Reference_tree.is_multi[@alert "-exn"]) res.rt refp in
-            let level = get_level_at_path res.left path in
-            (*
-            let indent_str =
-                Config_tree.make_indent indent level
+            else *)
+            let func_comment indent_str c =
+                match cmp with
+                | Values ->
+                    if ldata.comment = rdata.comment then
+                        annotate_rendered Unchanged (Config_tree.render_comment indent_str c)
+                    else
+                        annotate_rendered Unchanged (Config_tree.render_comment indent_str None)
+                | Values_and_comments ->
+                    if ldata.comment = rdata.comment then
+                        Config_tree.render_comment indent_str c
+                    else
+                        match ldata.comment, rdata.comment with
+                        | None, Some c ->
+                            annotate_rendered Added (Config_tree.render_comment indent_str (Some c))
+                        | Some c, None ->
+                            annotate_rendered Subtracted (Config_tree.render_comment indent_str (Some c))
+                        | Some _, Some d ->
+                            annotate_rendered chg (Config_tree.render_comment indent_str (Some d))
+                        | None, None -> (* not reached *)
+                            annotate_rendered Unchanged (Config_tree.render_comment indent_str None)
             in
-            *)
+            let level = get_level_at_path res.left path in
             let name =
                 match Util.get_last path with
                 | None -> (* not possible *) "none"
                 | Some n -> n
             in
+            if not ldata.leaf then
+                let func_values ?ord_val:_ _indent_str _name _values =
+                    "" (* not called on non-leaf *)
+                in
+                let data = rdata in
+                let node = Vytree.make data name in
+                let rev_diff =
+                    diff_str ^ (render_annotated_node func_values func_comment indent level node)
+                in
+                {res with config_diff = rev_diff; open_blocks = rev_blocks;}
+(*            let v = rdata.values in *)
+            else
+            let refp =
+                (Reference_tree.refpath[@alert "-exn"]) res.rt (res.base_path @ path) in
+            let multi = (Reference_tree.is_multi[@alert "-exn"]) res.rt refp in
+            (*
+            let indent_str =
+                Config_tree.make_indent indent level
+            in
+            *)
             match multi with
             | false ->
                 (*
                 let rendered =
                     Config_tree.render_values indent_str name v
                 in
-                let rev_diff = diff_str ^ annotate_rendered m rendered in
+                let rev_diff = diff_str ^ annotate_rendered chg rendered in
                 *)
                 let func_values ?ord_val:_ indent_str name values =
                     let rendered =
                         Config_tree.render_values indent_str name values
                     in
-                    annotate_rendered m rendered
+                    annotate_rendered chg rendered
                 in
                 let data = rdata in
                 let node = Vytree.make data name in
