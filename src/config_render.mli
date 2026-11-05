@@ -5,6 +5,7 @@ end
 
 module type R = sig
     val render_node : ?ord_val:bool -> int -> int -> Config_tree.t -> string
+    val render_relative_node : ?ord_val:bool -> Config_tree.t -> string list -> int -> int -> string
     val render_config : ?ord_val: bool -> Config_tree.t -> string
 end
 
@@ -20,4 +21,5 @@ module Renderer :
   end
 
 val render_node : ?ord_val:bool -> int -> int -> Config_tree.t -> string
+val render_relative_node : ?ord_val:bool -> Config_tree.t -> string list -> int -> int -> string
 val render_config : ?ord_val:bool -> Config_tree.t -> string

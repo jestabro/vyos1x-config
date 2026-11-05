@@ -6,6 +6,7 @@ end
 
 module type R = sig
     val render_node : ?ord_val:bool -> int -> int -> Config_tree.t -> string
+    val render_relative_node : ?ord_val:bool -> Config_tree.t -> string list -> int -> int -> string
     val render_config : ?ord_val: bool -> Config_tree.t -> string
 end
 
@@ -49,6 +50,26 @@ module Make (X : C) : R = struct
       let inner = String.concat "" inner in
       Printf.sprintf "%s%s%s %s {\n%s%s}\n" comment indent_str parent name inner indent_str
 
+    let render_relative_node ?(ord_val=false) root path indent level =
+        if not (Util.is_empty path) && not ((Vytree.exists[@alert "-exn"]) root path) then ""
+        else
+        match path with
+        | [] -> render_node ~ord_val:ord_val indent level root
+        | [_] ->
+            let node = (Vytree.get[@alert "-exn"]) root path in
+            render_node ~ord_val:ord_val indent level node
+        | _ ->
+            let node = (Vytree.get[@alert "-exn"]) root path in
+            if (Config_tree.is_tag_value[@alert "-exn"]) root path then
+                let tag_node =
+                    match Util.get_last_n path 1 with
+                    | None -> (* not possible as len path > 1 *) "none"
+                    | Some n -> n
+                in
+                render_tag_node_child ~ord_val:ord_val indent level tag_node node
+            else
+                render_node ~ord_val:ord_val indent level node
+
     let render_config ?(ord_val=false) node =
       let children = Vytree.children_of_node node in
       let child_configs = List.map (render_node ~ord_val:ord_val 4 0) children in
@@ -77,13 +98,17 @@ module Default : C = struct
         | Some c ->  Printf.sprintf "%s/* %s */\n" indent c
 end
 
-let make func_values func_comment : (module R) =
-    (module Make (struct let render_values = func_values let render_comment = func_comment end))
-
 module Renderer = Make (Default)
 
 let render_node ?(ord_val=false) indent level node =
     Renderer.render_node ~ord_val:ord_val indent level node
 
+let render_relative_node ?(ord_val=false) node path indent level =
+    Renderer.render_relative_node ~ord_val:ord_val node path indent level
+
 let render_config ?(ord_val=false) =
     Renderer.render_config ~ord_val:ord_val
+
+(* first-class module *)
+let make func_values func_comment : (module R) =
+    (module Make (struct let render_values = func_values let render_comment = func_comment end))

@@ -150,10 +150,13 @@ module Diff_show = struct
             let rev_diff = diff_str ^ annotate_rendered chg rendered in
             {res with config_diff = rev_diff; open_blocks = rev_blocks;}
         | Subtracted ->
-            let node = (Vytree.get[@alert "-exn"]) res.left path in
+(*            let node = (Vytree.get[@alert "-exn"]) res.left path in*)
             let level = get_level_at_path res.left path in
-            let rendered =
+(*            let rendered =
                 Config_tree.render_node indent level node
+            in *)
+            let rendered =
+                Config_render.render_relative_node res.left path indent level
             in
             let rev_diff = diff_str ^ annotate_rendered chg rendered in
             {res with config_diff = rev_diff; open_blocks = rev_blocks;}
