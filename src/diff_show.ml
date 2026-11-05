@@ -74,8 +74,8 @@ let render_level_close indent node path =
 let render_node (module F : Config_render.R) ?(ord_val=false) root path indent level =
     F.render_relative_node ~ord_val:ord_val root path indent level
 
-let render_annotated_node func_values func_comment root path indent level =
-    let f = Config_render.make func_values func_comment in
+let render_annotated_node rend_values rend_comment root path indent level =
+    let f = Config_render.make rend_values rend_comment in
     render_node f root path indent level
 
 
@@ -171,7 +171,7 @@ module Diff_show = struct
                     {res with config_diff = rev_diff; open_blocks = rev_blocks;}
             end
         | Updated (cmp, ldata, rdata) ->
-            let func_comment indent_str c =
+            let rend_comment indent_str c =
                 match cmp with
                 | Values ->
                     if ldata.comment = rdata.comment then
@@ -194,11 +194,11 @@ module Diff_show = struct
             in
             let level = get_level_at_path res.left path in
             if not ldata.leaf then
-                let func_values ?ord_val:_ _indent_str _name _values =
+                let rend_values ?ord_val:_ _indent_str _name _values =
                     "" (* not called on non-leaf *)
                 in
                 let rev_diff =
-                    diff_str ^ (render_annotated_node func_values func_comment res.left path indent level)
+                    diff_str ^ (render_annotated_node rend_values rend_comment res.left path indent level)
                 in
                 {res with config_diff = rev_diff; open_blocks = rev_blocks;}
             else
@@ -207,14 +207,14 @@ module Diff_show = struct
             let multi = (Reference_tree.is_multi[@alert "-exn"]) res.rt refp in
             match multi with
             | false ->
-                let func_values ?ord_val:_ indent_str name values =
+                let rend_values ?ord_val:_ indent_str name values =
                     let rendered =
                         Config_tree.render_values indent_str name values
                     in
                     annotate_rendered chg rendered
                 in
                 let rev_diff =
-                    diff_str ^ (render_annotated_node func_values func_comment res.left path indent level)
+                    diff_str ^ (render_annotated_node rend_values rend_comment res.left path indent level)
                 in
                 {res with config_diff = rev_diff; open_blocks = rev_blocks;}
             | true ->
@@ -225,7 +225,7 @@ module Diff_show = struct
                 let sub_vals = ValueS.elements (ValueS.diff ov_set v_set) in
                 let add_vals = ValueS.elements (ValueS.diff v_set ov_set) in
                 let inter_vals = ValueS.elements (ValueS.inter ov_set v_set) in
-                let func_values ?ord_val:_ indent_str name _values =
+                let rend_values ?ord_val:_ indent_str name _values =
                     let sub_rendered =
                         match sub_vals with
                         | [] -> ""
@@ -250,7 +250,7 @@ module Diff_show = struct
                     sub_diff ^ inter_diff ^ add_diff
                 in
                 let rev_diff =
-                    diff_str ^ (render_annotated_node func_values func_comment res.left path indent level)
+                    diff_str ^ (render_annotated_node rend_values rend_comment res.left path indent level)
                 in
                 {res with config_diff = rev_diff; open_blocks = rev_blocks;}
 end
