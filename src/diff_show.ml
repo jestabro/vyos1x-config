@@ -158,7 +158,7 @@ module Diff_show = struct
                 match path with
                 | [] -> (* case left = right *)
                     let rendered =
-                        Config_tree.render_config res.left
+                        Config_render.render_config res.left
                     in
                     let rev_diff = diff_str ^ annotate_rendered chg rendered in
                     {res with config_diff = rev_diff; open_blocks = rev_blocks;}
@@ -175,22 +175,22 @@ module Diff_show = struct
                 match cmp with
                 | Values ->
                     if ldata.comment = rdata.comment then
-                        annotate_rendered Unchanged (Config_tree.render_comment indent_str c)
+                        annotate_rendered Unchanged (Config_render.render_comment indent_str c)
                     else
-                        annotate_rendered Unchanged (Config_tree.render_comment indent_str None)
+                        annotate_rendered Unchanged (Config_render.render_comment indent_str None)
                 | Values_and_comments ->
                     if ldata.comment = rdata.comment then
-                        Config_tree.render_comment indent_str c
+                        Config_render.render_comment indent_str c
                     else
                         match ldata.comment, rdata.comment with
                         | None, Some c ->
-                            annotate_rendered Added (Config_tree.render_comment indent_str (Some c))
+                            annotate_rendered Added (Config_render.render_comment indent_str (Some c))
                         | Some c, None ->
-                            annotate_rendered Subtracted (Config_tree.render_comment indent_str (Some c))
+                            annotate_rendered Subtracted (Config_render.render_comment indent_str (Some c))
                         | Some _, Some d ->
-                            annotate_rendered chg (Config_tree.render_comment indent_str (Some d))
+                            annotate_rendered chg (Config_render.render_comment indent_str (Some d))
                         | None, None -> (* not reached *)
-                            annotate_rendered Unchanged (Config_tree.render_comment indent_str None)
+                            annotate_rendered Unchanged (Config_render.render_comment indent_str None)
             in
             let level = get_level_at_path res.left path in
             if not ldata.leaf then
@@ -209,7 +209,7 @@ module Diff_show = struct
             | false ->
                 let rend_values ?ord_val:_ indent_str name values =
                     let rendered =
-                        Config_tree.render_values indent_str name values
+                        Config_render.render_values indent_str name values
                     in
                     annotate_rendered chg rendered
                 in
@@ -230,21 +230,21 @@ module Diff_show = struct
                         match sub_vals with
                         | [] -> ""
                         | _ ->
-                            Config_tree.render_values indent_str name sub_vals
+                            Config_render.render_values indent_str name sub_vals
                     in
                     let sub_diff = annotate_rendered Subtracted sub_rendered in
                     let add_rendered =
                         match add_vals with
                         | [] -> ""
                         | _ ->
-                            Config_tree.render_values indent_str name add_vals
+                            Config_render.render_values indent_str name add_vals
                     in
                     let add_diff = annotate_rendered Added add_rendered in
                     let inter_rendered =
                         match inter_vals with
                         | [] -> ""
                         | _ ->
-                            Config_tree.render_values indent_str name inter_vals
+                            Config_render.render_values indent_str name inter_vals
                     in
                     let inter_diff = annotate_rendered Unchanged inter_rendered in
                     sub_diff ^ inter_diff ^ add_diff

@@ -100,14 +100,17 @@ end
 
 module Renderer = Make (Default)
 
-let render_node ?(ord_val=false) indent level node =
-    Renderer.render_node ~ord_val:ord_val indent level node
-
 let render_relative_node ?(ord_val=false) node path indent level =
     Renderer.render_relative_node ~ord_val:ord_val node path indent level
 
 let render_config ?(ord_val=false) =
     Renderer.render_config ~ord_val:ord_val
+
+let render_values ?(ord_val=false) indent_str name values =
+    Default.render_values ~ord_val:ord_val indent_str name values
+
+let render_comment indent c =
+    Default.render_comment indent c
 
 (* first-class module *)
 let make func_values func_comment : (module R) =
