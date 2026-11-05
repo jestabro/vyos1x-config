@@ -70,22 +70,15 @@ let render_level_close indent node path =
     let indent_str = Config_tree.make_indent indent level in
     Printf.sprintf "%s}\n" indent_str
 
-let render_node (module F : Config_render.R) ?(ord_val=false) indent level node =
-    F.render_node ~ord_val:ord_val indent level node
 
-let render_annotated_node func_values func_comment indent level node =
+let render_node (module F : Config_render.R) ?(ord_val=false) root path indent level =
+    F.render_relative_node ~ord_val:ord_val root path indent level
+
+let render_annotated_node func_values func_comment root path indent level =
     let f = Config_render.make func_values func_comment in
-    render_node f indent level node
+    render_node f root path indent level
 
-(*
-let func_comment = Config_tree.render_comment in
-let func_values ?(ord_val=false) indent_str name values =
-    annotate_rendered chg (Config_tree.render_values ~ord_val:ord_val indent_str name values)
-in
-let f = Config_render.make func_values func_comment in
-let rev_diff = diff_str ^ (render_node f indent level node)
-in
-*)
+
 module Diff_show = struct
     type t = { left: Config_tree.t;
                right: Config_tree.t;
@@ -107,7 +100,6 @@ module Diff_show = struct
         }
 
     let diff_comments res = res.diff_comments
-
 
     let diff_func ?(descent=true) (path : string list) res (chg : change) =
         (* alert exn Vytree.get, Reference_tree.refpath, Config_tree.get_values,
@@ -142,19 +134,14 @@ module Diff_show = struct
         in
         match chg with
         | Added ->
-            let node = (Vytree.get[@alert "-exn"]) res.right path in
             let level = get_level_at_path res.right path in
             let rendered =
-                Config_tree.render_node indent level node
+                Config_render.render_relative_node res.right path indent level
             in
             let rev_diff = diff_str ^ annotate_rendered chg rendered in
             {res with config_diff = rev_diff; open_blocks = rev_blocks;}
         | Subtracted ->
-(*            let node = (Vytree.get[@alert "-exn"]) res.left path in*)
             let level = get_level_at_path res.left path in
-(*            let rendered =
-                Config_tree.render_node indent level node
-            in *)
             let rendered =
                 Config_render.render_relative_node res.left path indent level
             in
@@ -177,25 +164,13 @@ module Diff_show = struct
                     {res with config_diff = rev_diff; open_blocks = rev_blocks;}
                 | _ ->
                     let level = get_level_at_path res.left path in
-                    let node = (Vytree.get[@alert "-exn"]) res.left path in
                     let rendered =
-                        if (Config_tree.is_tag_value[@alert "-exn"]) res.left path then
-                            let tag_node =
-                                match Util.get_last_n path 1 with
-                                | None -> (* not possible as path non-empty *) "none"
-                                | Some n -> n
-                            in
-                            Config_tree.render_tag_node_child indent level tag_node node
-                        else
-                            Config_tree.render_node indent level node
+                        Config_render.render_relative_node res.left path indent level
                     in
                     let rev_diff = diff_str ^ annotate_rendered chg rendered in
                     {res with config_diff = rev_diff; open_blocks = rev_blocks;}
             end
         | Updated (cmp, ldata, rdata) ->
-(*            if not res.diff_comments && not ldata.leaf then
-                res
-            else *)
             let func_comment indent_str c =
                 match cmp with
                 | Values ->
@@ -218,53 +193,31 @@ module Diff_show = struct
                             annotate_rendered Unchanged (Config_tree.render_comment indent_str None)
             in
             let level = get_level_at_path res.left path in
-            let name =
-                match Util.get_last path with
-                | None -> (* not possible *) "none"
-                | Some n -> n
-            in
             if not ldata.leaf then
                 let func_values ?ord_val:_ _indent_str _name _values =
                     "" (* not called on non-leaf *)
                 in
-                let data = rdata in
-                let node = Vytree.make data name in
                 let rev_diff =
-                    diff_str ^ (render_annotated_node func_values func_comment indent level node)
+                    diff_str ^ (render_annotated_node func_values func_comment res.left path indent level)
                 in
                 {res with config_diff = rev_diff; open_blocks = rev_blocks;}
-(*            let v = rdata.values in *)
             else
             let refp =
                 (Reference_tree.refpath[@alert "-exn"]) res.rt (res.base_path @ path) in
             let multi = (Reference_tree.is_multi[@alert "-exn"]) res.rt refp in
-            (*
-            let indent_str =
-                Config_tree.make_indent indent level
-            in
-            *)
             match multi with
             | false ->
-                (*
-                let rendered =
-                    Config_tree.render_values indent_str name v
-                in
-                let rev_diff = diff_str ^ annotate_rendered chg rendered in
-                *)
                 let func_values ?ord_val:_ indent_str name values =
                     let rendered =
                         Config_tree.render_values indent_str name values
                     in
                     annotate_rendered chg rendered
                 in
-                let data = rdata in
-                let node = Vytree.make data name in
                 let rev_diff =
-                    diff_str ^ (render_annotated_node func_values func_comment indent level node)
+                    diff_str ^ (render_annotated_node func_values func_comment res.left path indent level)
                 in
                 {res with config_diff = rev_diff; open_blocks = rev_blocks;}
             | true ->
-(*                let ov = (Config_tree.get_values[@alert "-exn"]) res.left path in *)
                 let ov = ldata.values in
                 let v = rdata.values in
                 let ov_set = ValueS.of_list ov in
@@ -296,10 +249,8 @@ module Diff_show = struct
                     let inter_diff = annotate_rendered Unchanged inter_rendered in
                     sub_diff ^ inter_diff ^ add_diff
                 in
-                let data = ldata in
-                let node = Vytree.make data name in
                 let rev_diff =
-                    diff_str ^ (render_annotated_node func_values func_comment indent level node)
+                    diff_str ^ (render_annotated_node func_values func_comment res.left path indent level)
                 in
                 {res with config_diff = rev_diff; open_blocks = rev_blocks;}
 end
