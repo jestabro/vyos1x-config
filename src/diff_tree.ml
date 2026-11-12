@@ -9,6 +9,7 @@ module Diff_tree = struct
                sub: Config_tree.t;
                del: Config_tree.t;
                inter: Config_tree.t;
+               comment_changeset: (string list * string option) list;
                diff_comments: bool;
              }
 
@@ -19,131 +20,11 @@ module Diff_tree = struct
           sub = Config_tree.default;
           del = Config_tree.default;
           inter = Config_tree.default;
+          comment_changeset = [];
           diff_comments = diff_comments;
         }
 
     let diff_comments res = res.diff_comments
-
-    let update_values res path ((ldata, rdata) : Config_tree.config_node_data * Config_tree.config_node_data) =
-        let ov = ldata.values in
-        let v = rdata.values in
-        match ov, v with
-        | [_], [_] -> {res with sub = (Config_tree.clone[@alert "-exn"]) res.left res.sub path;
-                       del = (Config_tree.clone[@alert "-exn"]) res.left res.del path;
-                       add = (Config_tree.clone[@alert "-exn"]) res.right res.add path; }
-        | _, _ -> let ov_set = ValueS.of_list ov in
-                  let v_set = ValueS.of_list v in
-                  let sub_vals = ValueS.elements (ValueS.diff ov_set v_set) in
-                  let add_vals = ValueS.elements (ValueS.diff v_set ov_set) in
-                  let inter_vals = ValueS.elements (ValueS.inter ov_set v_set) in
-                  let sub_tree =
-                      if not (Util.is_empty sub_vals) then
-                          (Config_tree.clone[@alert "-exn"]) ~set_values:(Some sub_vals) res.left res.sub path
-                      else
-                          res.sub
-                  in
-                  let del_tree =
-                      if not (Util.is_empty sub_vals) then
-                          if (Util.is_empty add_vals) && (Util.is_empty inter_vals) then
-                              (* delete whole node, not just values *)
-                              (Config_tree.clone[@alert "-exn"]) ~set_values:(Some []) res.left res.del path
-                          else
-                              (Config_tree.clone[@alert "-exn"]) ~set_values:(Some sub_vals) res.left res.del path
-                      else
-                          res.del
-                  in
-                  let add_tree =
-                      if not (Util.is_empty add_vals) then
-                          (Config_tree.clone[@alert "-exn"]) ~set_values:(Some add_vals) res.right res.add path
-                      else
-                          res.add
-                  in
-                  let inter_tree =
-                      if not (Util.is_empty inter_vals) then
-                          (Config_tree.clone[@alert "-exn"]) ~set_values:(Some inter_vals) res.left res.inter path
-                      else
-                          res.inter
-                  in
-                  { res with add = add_tree;
-                    sub = sub_tree;
-                    del = del_tree;
-                    inter = inter_tree; }
-
-    let update_values_and_comments res path ((ldata, rdata) : Config_tree.config_node_data * Config_tree.config_node_data) =
-        let comment_diff = (ldata.comment <> rdata.comment) in
-        let use_sub_comment = comment_diff && Option.is_some ldata.comment in
-        let use_add_comment = comment_diff && Option.is_some rdata.comment in
-        let inter_comment_op = if comment_diff then Config_tree.Drop else Copy
-        in
-        (* collect actionable values *)
-        let ov = ldata.values in
-        let v = rdata.values in
-        let ov_set = ValueS.of_list ov in
-        let v_set = ValueS.of_list v in
-        let none_values = (None, None, None) in
-        let sub_vals_opt, add_vals_opt, inter_vals_opt =
-            if not ldata.leaf || ValueS.equal ov_set v_set then
-                none_values
-            else
-                let ov_set = ValueS.of_list ov in
-                let v_set = ValueS.of_list v in
-                let sub_vals = ValueS.elements (ValueS.diff ov_set v_set) in
-                let add_vals = ValueS.elements (ValueS.diff v_set ov_set) in
-                let inter_vals = ValueS.elements (ValueS.inter ov_set v_set) in
-                (Some sub_vals, Some add_vals, Some inter_vals)
-        in
-        let option_is_empty o =
-            let o' = Option.value ~default:[] o in
-            Util.is_empty o'
-        in
-        let data_clone = (Config_tree.clone[@alert "-exn"]) ~descent:false in
-        let sub_tree =
-            if Option.is_none sub_vals_opt then
-                if use_sub_comment then
-                    data_clone ~set_values:sub_vals_opt res.left res.sub path
-                else
-                    res.sub
-            else
-                if not (option_is_empty sub_vals_opt) || use_sub_comment then
-                    data_clone ~set_values:sub_vals_opt res.left res.sub path
-                else
-                    res.sub
-        in
-        let del_tree =
-            if Option.is_none sub_vals_opt then
-                res.del
-            else
-                if not (option_is_empty sub_vals_opt) then
-                    if (option_is_empty add_vals_opt) && (option_is_empty inter_vals_opt) then
-                        (* delete whole node, not just values *)
-                        data_clone ~set_values:(Some []) ~comments:Drop res.left res.del path
-                    else
-                        data_clone ~set_values:sub_vals_opt ~comments:Drop res.left res.del path
-                else
-                    res.del
-        in
-        let add_tree =
-            if Option.is_none add_vals_opt then
-                if use_add_comment then
-                    data_clone ~set_values:add_vals_opt res.right res.add path
-                else
-                    res.add
-            else
-                if not (option_is_empty add_vals_opt) || use_add_comment then
-                    data_clone ~set_values:add_vals_opt res.right res.add path
-                else
-                    res.add
-        in
-        let inter_tree =
-                if not (option_is_empty inter_vals_opt) then
-                    data_clone ~set_values:inter_vals_opt ~comments:inter_comment_op res.left res.inter path
-                else
-                    res.inter
-        in
-        { res with add = add_tree;
-          sub = sub_tree;
-          del = del_tree;
-          inter = inter_tree; }
 
     let diff_func ?(descent=true) (path : string list) res (m : change) =
         (* raises no exception:
@@ -153,16 +34,79 @@ module Diff_tree = struct
             [Vytree.Nonexistent_path] not possible as pattern Updated implies path exists
          *)
         match m with
-        | Added -> {res with add = (Config_tree.clone[@alert "-exn"]) res.right res.add path; }
+        | Added ->
+            {res with add = (Config_tree.clone[@alert "-exn"]) res.right res.add path; }
+
         | Subtracted ->
             {res with sub = (Config_tree.clone[@alert "-exn"]) res.left res.sub path;
              del = (Config_tree.clone[@alert "-exn"]) ~descent:false ~set_values:(Some []) res.left res.del path; }
+
         | Unchanged ->
             {res with inter = (Config_tree.clone[@alert "-exn"]) ~descent:descent res.left res.inter path; }
-        | Updated (Values, ldata, rdata) ->
-            update_values res path (ldata, rdata)
-        | Updated (Values_and_comments, ldata, rdata) ->
-            update_values_and_comments res path (ldata, rdata)
+
+        | Updated (cmp, ldata, rdata) ->
+            let comment_changeset =
+                match cmp with
+                | Values -> res.comment_changeset
+                | Values_and_comments ->
+                    if ldata.comment = rdata.comment then
+                        res.comment_changeset
+                    else
+                    match ldata.comment, rdata.comment with
+                    | Some _, None ->
+                        (path, None) :: res.comment_changeset
+                    | _, Some c ->
+                        (path, Some c) :: res.comment_changeset
+                    | None, None (* not reached *) ->
+                        res.comment_changeset
+            in
+            if not ldata.leaf then { res with comment_changeset = comment_changeset }
+            else
+            let ov = ldata.values in
+            let v = rdata.values in
+            match ov, v with
+            | [_], [_] -> {res with sub = (Config_tree.clone[@alert "-exn"]) res.left res.sub path;
+                           del = (Config_tree.clone[@alert "-exn"]) res.left res.del path;
+                           add = (Config_tree.clone[@alert "-exn"]) res.right res.add path; }
+            | _, _ -> let ov_set = ValueS.of_list ov in
+                      let v_set = ValueS.of_list v in
+                      let sub_vals = ValueS.elements (ValueS.diff ov_set v_set) in
+                      let add_vals = ValueS.elements (ValueS.diff v_set ov_set) in
+                      let inter_vals = ValueS.elements (ValueS.inter ov_set v_set) in
+                      let sub_tree =
+                          if not (Util.is_empty sub_vals) then
+                              (Config_tree.clone[@alert "-exn"]) ~set_values:(Some sub_vals) res.left res.sub path
+                          else
+                              res.sub
+                      in
+                      let del_tree =
+                          if not (Util.is_empty sub_vals) then
+                              if (Util.is_empty add_vals) && (Util.is_empty inter_vals) then
+                                  (* delete whole node, not just values *)
+                                  (Config_tree.clone[@alert "-exn"]) ~set_values:(Some []) res.left res.del path
+                              else
+                                  (Config_tree.clone[@alert "-exn"]) ~set_values:(Some sub_vals) res.left res.del path
+                          else
+                              res.del
+                      in
+                      let add_tree =
+                          if not (Util.is_empty add_vals) then
+                              (Config_tree.clone[@alert "-exn"]) ~set_values:(Some add_vals) res.right res.add path
+                          else
+                              res.add
+                      in
+                      let inter_tree =
+                          if not (Util.is_empty inter_vals) then
+                              (Config_tree.clone[@alert "-exn"]) ~set_values:(Some inter_vals) res.left res.inter path
+                          else
+                              res.inter
+                      in
+                      { res with add = add_tree;
+                        sub = sub_tree;
+                        del = del_tree;
+                        inter = inter_tree;
+                        comment_changeset = comment_changeset; }
+
 end
 
 module D = Diff(Diff_tree)
