@@ -326,7 +326,8 @@ let rec clone_path ?(descent=true) ?(set_values=None) old_root new_root path_don
         [Vytree.Insert_error] not possible as calls are on path_existing @ [name]
      *)
     match path_remaining with
-    | [] | [_] ->
+    | [] -> new_root
+    | [_] ->
         let path_total = path_done @ path_remaining in
         let old_node = (Vytree.get[@alert "-exn"]) old_root path_total in
         let data =
